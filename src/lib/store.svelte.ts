@@ -1,0 +1,174 @@
+import type { Kind, PElement, Plan } from './elements';
+import { KIND_META } from './elements';
+
+export const LS_KEY = 'plan-de-feu:autosave';
+
+export function emptyPlan(): Plan {
+  return {
+    version: 1,
+    titre: 'Plan de disposition',
+    date: new Date().toISOString().slice(0, 10),
+    center: [46.6, 2.4],
+    zoom: 5,
+    base: 'osm',
+    elements: [],
+  };
+}
+
+function loadLocal(): Plan {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) {
+      const p = JSON.parse(raw) as Plan;
+      if (p?.version === 1 && Array.isArray(p.elements)) return p;
+    }
+  } catch {
+    /* autosave illisible : on repart d'un plan vide */
+  }
+  return emptyPlan();
+}
+
+class PlanStore {
+  plan = $state<Plan>(loadLocal());
+  tool = $state<Kind | 'select'>('select');
+  selection = $state<string | null>(null);
+  /** sommets en cours de tracé (barriérage / zone public) */
+  draft = $state<[number, number][]>([]);
+
+  get selected(): PElement | undefined {
+    return this.plan.elements.find((e) => e.id === this.selection);
+  }
+
+  get artifices(): PElement[] {
+    return this.plan.elements.filter((e) => e.kind === 'artifice');
+  }
+
+  get maxDs(): number {
+    return this.artifices.reduce((m, e) => Math.max(m, e.ds ?? 0), 0);
+  }
+
+  setTool(t: Kind | 'select') {
+    this.tool = t;
+    this.draft = [];
+    if (t !== 'select') this.selection = null;
+  }
+
+  setBase(base: 'osm' | 'sat') {
+    this.plan.base = base;
+  }
+
+  select(id: string | null) {
+    this.selection = id;
+  }
+
+  addPoint(kind: Kind, at: [number, number], extra: Partial<PElement> = {}) {
+    const el: PElement = {
+      id: crypto.randomUUID(),
+      kind,
+      label: KIND_META[kind].label,
+      lat: at[0],
+      lng: at[1],
+      ...extra,
+      // lat/lng/id/kind jamais écrasés par extra
+      ...{},
+    };
+    el.lat = at[0];
+    el.lng = at[1];
+    el.kind = kind;
+    this.plan.elements.push(el);
+    this.selection = el.id;
+    return el;
+  }
+
+  addArtifice(at: [number, number], a: { nom: string; ref: string; calibre: number | null; ds: number | null }) {
+    return this.addPoint('artifice', at, {
+      label: a.nom,
+      ref: a.ref,
+      calibre: a.calibre,
+      ds: a.ds,
+    });
+  }
+
+  /** Ajoute un sommet au tracé en cours. */
+  addVertex(at: [number, number]) {
+    this.draft = [...this.draft, at];
+  }
+
+  /** Termine le tracé en cours : crée le barriérage (≥2 pts) ou la zone (≥3 pts). */
+  finishDraft(): boolean {
+    const ring = this.draft;
+    const kind: Kind | null = this.tool === 'zone_public' ? 'zone_public' : this.tool === 'barrierage' ? 'barrierage' : null;
+    if (!kind) return false;
+    const min = kind === 'zone_public' ? 3 : 2;
+    if (ring.length < min) return false;
+    const el: PElement = {
+      id: crypto.randomUUID(),
+      kind,
+      label: KIND_META[kind].label,
+      lat: ring[0][0],
+      lng: ring[0][1],
+      ring: ring.map((p) => [...p] as [number, number]),
+    };
+    this.plan.elements.push(el);
+    this.draft = [];
+    this.selection = el.id;
+    this.tool = 'select';
+    return true;
+  }
+
+  cancelDraft() {
+    this.draft = [];
+  }
+
+  moveTo(id: string, at: [number, number]) {
+    const el = this.plan.elements.find((e) => e.id === id);
+    if (!el) return;
+    el.lat = at[0];
+    el.lng = at[1];
+  }
+
+  moveVertex(id: string, index: number, at: [number, number]) {
+    const el = this.plan.elements.find((e) => e.id === id);
+    if (!el?.ring?.[index]) return;
+    el.ring[index] = at;
+  }
+
+  update(id: string, patch: Partial<PElement>) {
+    const el = this.plan.elements.find((e) => e.id === id);
+    if (!el) return;
+    Object.assign(el, patch);
+  }
+
+  remove(id: string) {
+    this.plan.elements = this.plan.elements.filter((e) => e.id !== id);
+    if (this.selection === id) this.selection = null;
+  }
+
+  newPlan() {
+    this.plan = emptyPlan();
+    this.selection = null;
+    this.draft = [];
+    this.tool = 'select';
+  }
+
+  loadPlan(p: Plan) {
+    this.plan = p;
+    this.selection = null;
+    this.draft = [];
+    this.tool = 'select';
+  }
+
+  toJson(): string {
+    return JSON.stringify(this.plan, null, 2);
+  }
+
+  saveLocal() {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(this.plan));
+    } catch {
+      /* quota plein : l'export fichier reste la sortie de secours */
+    }
+  }
+}
+
+export const store = new PlanStore();

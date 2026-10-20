@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
-import type { Plan, PElement } from './elements';
-import { KIND_META, colorOf, isZone } from './elements';
+import type { Plan, PElement, Kind } from './elements';
+import { KIND_META, colorOf, kindIconSvg, isZone } from './elements';
 import { formatCoord, metersPerPixel, ringArea, scaleDenominator } from './geo';
 
 const IMG = { x: 10, y: 26, w: 190, h: 138 };
@@ -43,18 +43,54 @@ async function downscale(dataUrl: string, maxWidth: number): Promise<string> {
   return canvas.toDataURL('image/jpeg', 0.86);
 }
 
-/** Ligne de légende : numéro + libellé + détails techniques + GPS. */
-function legendRow(doc: jsPDF, e: PElement, n: number, x: number, y: number, w: number): number {
-  const [r, g, b] = hexToRgb(colorOf(e));
-  doc.setFillColor(r, g, b);
-  doc.roundedRect(x, y - 2.6, 3, 3, 1, 1, 'F');
+/** Icône de l'élément rendue en PNG (jsPDF ne sait pas dessiner un SVG). */
+const iconCache = new Map<string, string>();
+
+async function iconPng(kind: Kind, color: string): Promise<string | null> {
+  const key = `${kind}|${color}`;
+  const cached = iconCache.get(key);
+  if (cached) return cached;
+  try {
+    const img = new Image();
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(kindIconSvg(kind, 64, color))}`;
+    await img.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, 64, 64);
+    const png = canvas.toDataURL('image/png');
+    iconCache.set(key, png);
+    return png;
+  } catch {
+    return null; // PDF sans icône plutôt qu'un export qui échoue
+  }
+}
+
+/** Ligne de légende : icône + numéro + libellé + détails techniques + GPS. */
+function legendRow(
+  doc: jsPDF,
+  e: PElement,
+  n: number,
+  x: number,
+  y: number,
+  w: number,
+  icon: string | null
+): number {
+  if (icon) {
+    doc.addImage(icon, 'PNG', x, y - 3.2, 3.6, 3.6, undefined, 'FAST');
+  } else {
+    const [r, g, b] = hexToRgb(colorOf(e));
+    doc.setFillColor(r, g, b);
+    doc.roundedRect(x, y - 2.6, 3, 3, 1, 1, 'F');
+  }
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6.6);
   doc.setTextColor(26, 26, 26);
   const title = `${n}. ${KIND_META[e.kind].label} — ${e.label}`;
-  const lines = doc.splitTextToSize(title, w - 5) as string[];
-  doc.text(lines[0], x + 4.5, y);
+  const lines = doc.splitTextToSize(title, w - 5.4) as string[];
+  doc.text(lines[0], x + 4.9, y);
   let cursor = y + 3.4;
 
   const details: string[] = [];
@@ -73,9 +109,9 @@ function legendRow(doc: jsPDF, e: PElement, n: number, x: number, y: number, w: 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(5.6);
   doc.setTextColor(120, 120, 120);
-  const det = doc.splitTextToSize(details.join(' · '), w - 5) as string[];
+  const det = doc.splitTextToSize(details.join(' · '), w - 5.4) as string[];
   for (const d of det) {
-    doc.text(d, x + 4.5, cursor);
+    doc.text(d, x + 4.9, cursor);
     cursor += 2.7;
   }
   doc.setTextColor(26, 26, 26);
@@ -159,8 +195,13 @@ export async function buildPdf(plan: Plan, mapEl: HTMLElement | null, mapWidthPx
   doc.setTextColor(120, 120, 120);
   doc.text('Éléments numérotés sur la carte — légende détaillée page 2.', IMG.x, IMG.y + imgH + 7);
 
-  // ---- Pages suivantes : légende
+  // ---- Pages suivantes : légende (icônes de chaque type, comme sur la carte)
   if (plan.elements.length) {
+    const icons = new Map<string, string | null>();
+    for (const e of plan.elements) {
+      const key = `${e.kind}|${colorOf(e)}`;
+      if (!icons.has(key)) icons.set(key, await iconPng(e.kind, colorOf(e)));
+    }
     const colW = 88;
     const colX = [10, 102, 194];
     const bottom = 200;
@@ -192,7 +233,7 @@ export async function buildPdf(plan: Plan, mapEl: HTMLElement | null, mapWidthPx
         y = LEGEND_TOP;
         if (col > 2) newPage();
       }
-      y = legendRow(doc, e, i + 1, colX[col], y, colW);
+      y = legendRow(doc, e, i + 1, colX[col], y, colW, icons.get(`${e.kind}|${colorOf(e)}`) ?? null);
     });
   }
 

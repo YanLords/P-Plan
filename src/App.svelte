@@ -13,7 +13,7 @@
   let busy = $state(false);
   let toast = $state('');
 
-  // autosave (debounce) : tout changement du plan est persisté localement
+  // autosave + point de retour undo (debounce) : tout changement du plan est persisté localement
   $effect(() => {
     const json = JSON.stringify(store.plan);
     const t = setTimeout(() => {
@@ -22,6 +22,7 @@
       } catch {
         /* quota : l'export fichier reste la sortie de secours */
       }
+      store.snapshot();
     }, 400);
     return () => clearTimeout(t);
   });
@@ -80,6 +81,19 @@
   }
 
   function onKey(e: KeyboardEvent) {
+    const mod = e.metaKey || e.ctrlKey;
+    const key = e.key.toLowerCase();
+    if (mod && (key === 'z' || key === 'y')) {
+      e.preventDefault();
+      const redone = key === 'y' || e.shiftKey;
+      if (redone) {
+        if (store.redo()) notify('Rétabli');
+      } else if (store.undo()) {
+        notify('Annulé');
+      }
+      return;
+    }
+
     const t = e.target as HTMLElement | null;
     if (t && /^(input|textarea|select)$/i.test(t.tagName)) return;
     if (e.key === 'Escape') {
@@ -109,6 +123,15 @@
         <span><b>{store.artifices.length}</b> artifices</span>
         <span><b>{store.maxDs}</b> m DS max</span>
         <span><b>{store.plan.elements.length}</b> éléments</span>
+      </div>
+
+      <div class="history">
+        <button onclick={() => store.undo()} disabled={!store.hasUndo} title="Annuler (⌘Z)" aria-label="Annuler">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h9a6 6 0 0 1 0 12h-3" /></svg>
+        </button>
+        <button onclick={() => store.redo()} disabled={!store.hasRedo} title="Rétablir (⇧⌘Z)" aria-label="Rétablir">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5" /><path d="M20 9h-9a6 6 0 0 0 0 12h3" /></svg>
+        </button>
       </div>
     </header>
 
@@ -205,6 +228,32 @@
   .stats b {
     color: var(--text-primary);
     font-weight: 600;
+  }
+
+  .history {
+    display: flex;
+    gap: 2px;
+    padding-left: 12px;
+    border-left: 1px solid var(--border-card);
+  }
+
+  .history button {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    display: grid;
+    place-items: center;
+    color: var(--text-secondary);
+  }
+
+  .history button:hover:not(:disabled) {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+  }
+
+  .history button:disabled {
+    opacity: 0.3;
+    cursor: default;
   }
 
   .stage {

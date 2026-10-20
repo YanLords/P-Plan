@@ -11,6 +11,7 @@
   import { buildPdf } from './lib/pdf';
 
   let mapEl = $state<HTMLDivElement | null>(null);
+  let mapView = $state<{ setPrintBoost: (on: boolean) => void } | null>(null);
   let busy = $state(false);
   let toast = $state('');
   let showSettings = $state(false);
@@ -67,7 +68,7 @@
   async function onPdf() {
     busy = true;
     try {
-      const bytes = await buildPdf(store.plan, mapEl, mapEl?.clientWidth ?? 900);
+      const bytes = await buildPdf(store.plan, mapEl, mapEl?.clientWidth ?? 900, (on) => mapView?.setPrintBoost(on));
       const name = `${slug(store.plan.titre)}-${store.plan.date}.pdf`;
       const path = await saveFile(name, bytes, [{ name: 'PDF', extensions: ['pdf'] }]);
       if (path) notify('PDF exporté');
@@ -159,7 +160,7 @@
 
     <div class="stage">
       <div class="map" bind:this={mapEl}></div>
-      <MapView el={mapEl} />
+      <MapView el={mapEl} bind:this={mapView} />
       {#if settings.value.showLegend}
         <Legend />
       {/if}

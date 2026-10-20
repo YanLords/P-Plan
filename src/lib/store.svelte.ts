@@ -1,5 +1,5 @@
 import type { Kind, PElement, Plan } from './elements';
-import { KIND_META } from './elements';
+import { KIND_META, isShape, isZone } from './elements';
 import { History } from './history';
 import { snapDistance } from './geo';
 
@@ -132,9 +132,10 @@ class PlanStore {
   /** Termine le tracé en cours : crée le barriérage (≥2 pts) ou la zone (≥3 pts). */
   finishDraft(): boolean {
     const ring = this.draft;
-    const kind: Kind | null = this.tool === 'zone_public' ? 'zone_public' : this.tool === 'barrierage' ? 'barrierage' : null;
+    const kind: Kind | null =
+      this.tool !== 'select' && isShape(this.tool) ? (this.tool as Kind) : null;
     if (!kind) return false;
-    const min = kind === 'zone_public' ? 3 : 2;
+    const min = isZone(kind) ? 3 : 2;
     if (ring.length < min) return false;
     const el: PElement = {
       id: crypto.randomUUID(),
@@ -143,6 +144,7 @@ class PlanStore {
       lat: ring[0][0],
       lng: ring[0][1],
       ring: ring.map((p) => [...p] as [number, number]),
+      ...(kind === 'zone_perso' ? { color: KIND_META[kind].color } : {}),
     };
     this.plan.elements.push(el);
     this.draft = [];

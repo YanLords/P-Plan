@@ -3,7 +3,7 @@
   import L from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import { store } from './store.svelte';
-  import { KIND_META, kindIcon, type PElement } from './elements';
+  import { KIND_META, kindIcon, colorOf, isShape, isZone, type PElement } from './elements';
   import { destinationPoint, haversine, snapDistance } from './geo';
   import { searchPlaces, type Place } from './geocode';
 
@@ -40,7 +40,7 @@
   function pin(e: PElement, selected: boolean) {
     return L.divIcon({
       className: 'pf-pin-wrap',
-      html: `<div class="pf-pin${selected ? ' sel' : ''}" style="--c:${KIND_META[e.kind].color}">${kindIcon(e.kind)}</div>`,
+      html: `<div class="pf-pin${selected ? ' sel' : ''}" style="--c:${colorOf(e)}">${kindIcon(e.kind)}</div>`,
       iconSize: [26, 26],
       iconAnchor: [13, 13],
     });
@@ -63,14 +63,12 @@
 
     store.plan.elements.forEach((e, i) => {
       const sel = store.selection === e.id;
-      const color = KIND_META[e.kind].color;
+      const color = colorOf(e);
 
       if (e.ring && e.ring.length > 1) {
-        const shape =
-          e.kind === 'zone_public'
+        const shape = isZone(e.kind)
             ? L.polygon(e.ring, { color, weight: 2, fillColor: color, fillOpacity: 0.12 })
-            : L.polyline(e.ring, { color, weight: 3, dashArray: '7 5' });
-        shape.addTo(overlay!).on('click', () => store.select(e.id));
+            : L.polyline(e.ring, { color, weight: 3, dashArray: '7 5' });        shape.addTo(overlay!).on('click', () => store.select(e.id));
         if (sel) {
           e.ring.forEach((p, idx) => {
             const h = L.marker(p, { icon: handleIcon(), draggable: true, zIndexOffset: 600 }).addTo(overlay!);
@@ -167,10 +165,15 @@
     draftGroup = L.layerGroup().addTo(map);
     const pts = store.draft;
     if (!pts.length) return;
-    const isZone = store.tool === 'zone_public';
+    const isZoneDraft = store.tool !== 'select' && isZone(store.tool);
     if (pts.length > 1) {
-      (isZone
-        ? L.polygon(pts, { color: KIND_META.zone_public.color, weight: 2, dashArray: '6 4', fillOpacity: 0.1 })
+      (isZoneDraft
+        ? L.polygon(pts, {
+            color: store.tool === 'select' ? KIND_META.zone_perso.color : KIND_META[store.tool].color,
+            weight: 2,
+            dashArray: '6 4',
+            fillOpacity: 0.1,
+          })
         : L.polyline(pts, { color: KIND_META.barrierage.color, weight: 2, dashArray: '6 4' })
       ).addTo(draftGroup);
     }
@@ -220,7 +223,7 @@
     m.on('click', (ev: L.LeafletMouseEvent) => {
       const at: [number, number] = [ev.latlng.lat, ev.latlng.lng];
       places = [];
-      if (store.tool === 'barrierage' || store.tool === 'zone_public') store.addVertex(at);
+      if (store.tool !== 'select' && isShape(store.tool)) store.addVertex(at);
       else if (store.tool !== 'select') store.addPoint(store.tool, at);
       else store.select(null);
     });
@@ -241,13 +244,12 @@
     };
   });
 
-  const shaping = $derived(store.tool === 'barrierage' || store.tool === 'zone_public');  const hint = $derived(
+  const shaping = $derived(store.tool !== 'select' && isShape(store.tool));
+  const hint = $derived(
     store.tool === 'select'
       ? 'Cliquez un élément pour l’éditer · glissez pour déplacer'
       : shaping
-        ? store.tool === 'zone_public'
-          ? 'Cliquez les sommets de la zone · Entrée pour terminer'
-          : 'Cliquez les points du barriérage · Entrée pour terminer'
+        ? 'Cliquez les sommets · Entrée pour terminer'
         : `Cliquez sur la carte pour placer : ${KIND_META[store.tool].label}`
   );
   // ---- Recherche de lieu (barre d'adresse)
@@ -314,7 +316,7 @@
       <span>{store.draft.length} point{store.draft.length > 1 ? 's' : ''}</span>
       <button
         class="primary"
-        disabled={store.draft.length < (store.tool === 'zone_public' ? 3 : 2)}
+        disabled={store.draft.length < (store.tool !== 'select' && isZone(store.tool) ? 3 : 2)}
         onclick={() => store.finishDraft()}
       >
         Terminer

@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
 import type { Plan, PElement } from './elements';
-import { KIND_META } from './elements';
+import { KIND_META, colorOf, isZone } from './elements';
 import { formatCoord, metersPerPixel, ringArea, scaleDenominator } from './geo';
 
 const IMG = { x: 10, y: 26, w: 190, h: 138 };
@@ -45,7 +45,7 @@ async function downscale(dataUrl: string, maxWidth: number): Promise<string> {
 
 /** Ligne de légende : numéro + libellé + détails techniques + GPS. */
 function legendRow(doc: jsPDF, e: PElement, n: number, x: number, y: number, w: number): number {
-  const [r, g, b] = hexToRgb(KIND_META[e.kind].color);
+  const [r, g, b] = hexToRgb(colorOf(e));
   doc.setFillColor(r, g, b);
   doc.roundedRect(x, y - 2.6, 3, 3, 1, 1, 'F');
 
@@ -63,7 +63,7 @@ function legendRow(doc: jsPDF, e: PElement, n: number, x: number, y: number, w: 
   if (e.ds != null) details.push(`DS ${e.ds} m`);
   if (e.ring?.length) {
     details.push(
-      e.kind === 'zone_public'
+      isZone(e.kind)
         ? `${e.ring.length} pts · ${Math.round(ringArea(e.ring)).toLocaleString('fr-FR')} m²`
         : `${e.ring.length} pts`
     );
@@ -127,7 +127,17 @@ export async function buildPdf(plan: Plan, mapEl: HTMLElement | null, mapWidthPx
     ['DS maximale', `${Math.round(plan.elements.reduce((m, e) => Math.max(m, e.ds ?? 0), 0))} m`],
     ['Barriérages', String(kindCount(plan, 'barrierage'))],
     ['Zone public', String(kindCount(plan, 'zone_public'))],
-    ['Autres éléments', String(plan.elements.length - nArt - kindCount(plan, 'barrierage') - kindCount(plan, 'zone_public'))],
+    ['Zones perso', String(kindCount(plan, 'zone_perso'))],
+    [
+      'Autres éléments',
+      String(
+        plan.elements.length -
+          nArt -
+          kindCount(plan, 'barrierage') -
+          kindCount(plan, 'zone_public') -
+          kindCount(plan, 'zone_perso')
+      ),
+    ],
     ['Centre', formatCoord(lat, lng)],
     ['Échelle', denom ? `1:${denom}` : '—'],
     ['Fond', plan.base === 'sat' ? 'Satellite (Esri)' : 'Plan (OSM)'],

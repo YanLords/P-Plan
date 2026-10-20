@@ -6,6 +6,8 @@ import {
   metersToPixels,
   parseDistance,
   haversine,
+  destinationPoint,
+  snapDistance,
   formatCoord,
   ringArea,
   scaleDenominator,
@@ -56,6 +58,35 @@ test('ringArea : carré de 100 m de côté ≈ 10 000 m²', () => {
   const area = ringArea(ring);
   assert.ok(Math.abs(area - 10000) / 10000 < 0.02, `aire inattendue: ${area}`);
   assert.equal(ringArea([[1, 2], [3, 4]]), 0);
+});
+
+test('destinationPoint : 1 km à l’est de l’équateur, et retour cohérent', () => {
+  const [lat, lng] = destinationPoint(0, 0, 1000, 90);
+  assert.ok(Math.abs(lat) < 1e-9, `latitude: ${lat}`);
+  assert.ok(Math.abs(lng - 0.008993) < 1e-4, `longitude: ${lng}`);
+  // le rayon mesuré revient à la distance demandée (poignée de distance de sécurité)
+  const origin: [number, number] = [48.85, 2.35];
+  const back = haversine(origin, destinationPoint(origin[0], origin[1], 70, 90));
+  assert.ok(Math.abs(back - 70) < 0.5, `distance retour: ${back}`);
+});
+
+test('snapDistance : au mètre sous 25 m, par 5 m au-delà', () => {
+  // < 25 m : mètre près
+  assert.equal(snapDistance(3.4), 3);
+  assert.equal(snapDistance(12.6), 13);
+  assert.equal(snapDistance(24.2), 24);
+  // ≥ 25 m : pas de 5 m
+  assert.equal(snapDistance(25), 25);
+  assert.equal(snapDistance(27.4), 25);
+  assert.equal(snapDistance(27.6), 30);
+  assert.equal(snapDistance(80), 80);
+  assert.equal(snapDistance(437), 435);
+  // garde-fous
+  assert.equal(snapDistance(0), 1);
+  assert.equal(snapDistance(-5), 1);
+  assert.equal(snapDistance(Number.NaN), 1);
+  // toute valeur ≥ 25 est un multiple de 5
+  for (const m of [25, 31, 44.9, 99.99, 1234]) assert.equal(snapDistance(m) % 5, 0, `${m}`);
 });
 
 test('formatCoord / scaleDenominator', () => {

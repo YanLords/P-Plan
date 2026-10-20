@@ -41,6 +41,7 @@
         <span>Distance de sécurité (m)</span>
         <input type="number" min="0" step="1" bind:value={el.ds} />
       </label>
+      <p class="tip">Poignée orange sur la carte pour régler le rayon à la souris.</p>
     {/if}
 
     {#if el.ring?.length}
@@ -158,6 +159,12 @@
 
   .row .sm {
     max-width: 108px;
+  }
+
+  .tip {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: -4px;
   }
 
   .stat {

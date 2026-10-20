@@ -37,6 +37,28 @@ export function formatCoord(lat: number, lng: number, digits = 5): string {
   return `${lat.toFixed(digits)}, ${lng.toFixed(digits)}`;
 }
 
+/** Point situé à `meters` d'un point, dans la direction `bearing` (degrés, 0 = nord). */
+export function destinationPoint(
+  lat: number,
+  lng: number,
+  meters: number,
+  bearing: number
+): [number, number] {
+  const R = 6378137;
+  const d = meters / R;
+  const br = (bearing * Math.PI) / 180;
+  const lat1 = (lat * Math.PI) / 180;
+  const lng1 = (lng * Math.PI) / 180;
+  const lat2 = Math.asin(Math.sin(lat1) * Math.cos(d) + Math.cos(lat1) * Math.sin(d) * Math.cos(br));
+  const lng2 =
+    lng1 +
+    Math.atan2(
+      Math.sin(br) * Math.sin(d) * Math.cos(lat1),
+      Math.cos(d) - Math.sin(lat1) * Math.sin(lat2)
+    );
+  return [(lat2 * 180) / Math.PI, (((lng2 * 180) / Math.PI + 540) % 360) - 180];
+}
+
 /** Dénominateur d'échelle : distance terrain (m) ramenée à une largeur papier (mm). */
 export function scaleDenominator(groundMeters: number, imageWidthMm: number): number {
   if (!(groundMeters > 0) || !(imageWidthMm > 0)) return 0;

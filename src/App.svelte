@@ -1,7 +1,6 @@
 <script lang="ts">
   import Rail from './lib/Rail.svelte';
   import MapView from './lib/MapView.svelte';
-  import Catalog from './lib/Catalog.svelte';
   import Legend from './lib/Legend.svelte';
   import PanelProps from './lib/PanelProps.svelte';
   import { store } from './lib/store.svelte';
@@ -138,7 +137,6 @@
     <div class="stage">
       <div class="map" bind:this={mapEl}></div>
       <MapView el={mapEl} />
-      <Catalog />
       <Legend />
       <PanelProps />
       {#if busy}

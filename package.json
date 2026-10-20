@@ -10,7 +10,6 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "node --test src/lib/geo.test.ts src/lib/geocode.test.ts src/lib/history.test.ts",
-    "import:artifices": "node scripts/import-artifices.mjs",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"

@@ -6,6 +6,7 @@ import {
   metersToPixels,
   parseDistance,
   haversine,
+  destinationPoint,
   formatCoord,
   ringArea,
   scaleDenominator,
@@ -56,6 +57,16 @@ test('ringArea : carré de 100 m de côté ≈ 10 000 m²', () => {
   const area = ringArea(ring);
   assert.ok(Math.abs(area - 10000) / 10000 < 0.02, `aire inattendue: ${area}`);
   assert.equal(ringArea([[1, 2], [3, 4]]), 0);
+});
+
+test('destinationPoint : 1 km à l’est de l’équateur, et retour cohérent', () => {
+  const [lat, lng] = destinationPoint(0, 0, 1000, 90);
+  assert.ok(Math.abs(lat) < 1e-9, `latitude: ${lat}`);
+  assert.ok(Math.abs(lng - 0.008993) < 1e-4, `longitude: ${lng}`);
+  // le rayon mesuré revient à la distance demandée (poignée de distance de sécurité)
+  const origin: [number, number] = [48.85, 2.35];
+  const back = haversine(origin, destinationPoint(origin[0], origin[1], 70, 90));
+  assert.ok(Math.abs(back - 70) < 0.5, `distance retour: ${back}`);
 });
 
 test('formatCoord / scaleDenominator', () => {

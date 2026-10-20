@@ -1,7 +1,7 @@
 <script lang="ts">
   import { store } from './store.svelte';
   import { KIND_META, colorOf, isZone } from './elements';
-  import { formatCoord, ringArea } from './geo';
+  import { formatCoord, formatMeters, ringArea, ringLength } from './geo';
 
   const el = $derived(store.selected);
 
@@ -53,9 +53,15 @@
 
     {#if el.ring?.length}
       <div class="stat">
-        {el.ring.length} sommets
         {#if isZone(el.kind)}
-          · ≈ {Math.round(ringArea(el.ring)).toLocaleString('fr-FR')} m²
+          <span>
+            {el.ring.length} sommets · périmètre {formatMeters(ringLength(el.ring, true))} m · ≈ {formatMeters(
+              ringArea(el.ring)
+            )} m²
+          </span>
+        {:else}
+          <span class="measure">Longueur à couvrir : <b>{formatMeters(ringLength(el.ring))} m</b></span>
+          <span>{el.ring.length} sommets</span>
         {/if}
         <span class="hint">glissez les poignées sur la carte</span>
       </div>
@@ -190,6 +196,17 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+  }
+
+  .measure {
+    font-size: 12px;
+    color: var(--text-primary);
+  }
+
+  .measure b {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: #a35c14;
   }
 
   .hint {

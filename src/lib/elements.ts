@@ -87,9 +87,17 @@ const PATHS: Record<Kind, string> = {
     '<path d="M20 10.2c0 6-8 11.8-8 11.8S4 16.2 4 10.2a8 8 0 0 1 16 0z"/><circle cx="12" cy="10.2" r="2.6"/>',
 };
 
-/** SVG inline (style Feather : tracé 1.7, 24×24) pour une icône d'élément. */
+/** SVG inline (style Feather : tracé 1.7, 24×24). `color` = currentColor par défaut. */
+export function kindIconSvg(kind: Kind, size = 20, color = 'currentColor'): string {
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="${color}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+    `${PATHS[kind]}</svg>`
+  );
+}
+
+/** Icône d'élément (hérite de la couleur du texte). */
 export function kindIcon(kind: Kind): string {
-  return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PATHS[kind]}</svg>`;
+  return kindIconSvg(kind);
 }
 
 export const isZone = (kind: Kind) => KIND_META[kind].shape === 'zone';

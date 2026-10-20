@@ -4,8 +4,9 @@
   import 'leaflet/dist/leaflet.css';
   import { store } from './store.svelte';
   import { settings } from './settings.svelte';
-  import { KIND_META, kindIcon, colorOf, isShape, isZone, type PElement } from './elements';
+  import { KIND_META, kindIcon, colorOf, isShape, isZone, TOOL_ORDER, type PElement } from './elements';
   import { destinationPoint, haversine, snapDistance } from './geo';
+  import { kindCursor } from './cursors';
   import { searchPlaces, type Place } from './geocode';
 
   let { el }: { el: HTMLDivElement | null } = $props();
@@ -204,7 +205,27 @@
     if (map) ensureBase(store.plan.base);
   });
 
+  // le curseur prend l'apparence de l'outil sélectionné
+  $effect(() => {
+    const tool = store.tool;
+    if (!el) return;
+    if (tool === 'select') {
+      el.style.cursor = '';
+      return;
+    }
+    let cancelled = false;
+    kindCursor(tool).then((css) => {
+      if (!cancelled && css && el) el.style.cursor = css;
+    });
+    return () => {
+      cancelled = true;
+    };
+  });
+
   onMount(() => {
+    // pré-chauffe les curseurs d'outils : le changement d'outil doit être instantané
+    TOOL_ORDER.forEach((k) => void kindCursor(k));
+
     if (!el) return;
     const m = L.map(el, {
       center: store.plan.center,

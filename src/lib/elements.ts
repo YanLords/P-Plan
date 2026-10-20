@@ -87,11 +87,19 @@ const PATHS: Record<Kind, string> = {
     '<path d="M20 10.2c0 6-8 11.8-8 11.8S4 16.2 4 10.2a8 8 0 0 1 16 0z"/><circle cx="12" cy="10.2" r="2.6"/>',
 };
 
+/** Tracés seuls (sans `<svg>`), réutilisables dans une autre composition SVG. */
+export function kindGlyph(kind: Kind, color = 'currentColor', strokeWidth = 1.7): string {
+  return (
+    `<g fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">` +
+    `${PATHS[kind]}</g>`
+  );
+}
+
 /** SVG inline (style Feather : tracé 1.7, 24×24). `color` = currentColor par défaut. */
 export function kindIconSvg(kind: Kind, size = 20, color = 'currentColor'): string {
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="${color}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
-    `${PATHS[kind]}</svg>`
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">` +
+    `${kindGlyph(kind, color)}</svg>`
   );
 }
 

@@ -379,6 +379,7 @@
     searched = false;
     active = -1;
     q = p.label;
+    store.setSite(p.label);
     map?.flyTo([p.lat, p.lng], 16, { duration: 0.9 });
   }
 

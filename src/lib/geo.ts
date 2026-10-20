@@ -99,6 +99,18 @@ export function ringLength(ring: [number, number][], closed = false): number {
   return total;
 }
 
+/** Longueur « ronde » (1-2-5) de barre d'échelle tenant dans `maxMm`. */
+export function scaleBarLength(groundMetersPerMm: number, maxMm: number): { meters: number; mm: number } {
+  if (!(groundMetersPerMm > 0) || !(maxMm > 0) || !Number.isFinite(groundMetersPerMm)) {
+    return { meters: 0, mm: 0 };
+  }
+  const raw = groundMetersPerMm * maxMm;
+  const pow = 10 ** Math.floor(Math.log10(raw));
+  const candidates = [1, 2, 5, 10].map((k) => k * pow);
+  const meters = candidates.filter((v) => v <= raw).pop() ?? pow;
+  return { meters, mm: meters / groundMetersPerMm };
+}
+
 /** Nombre en mètres lisible : « 1 235 » (espaces normales, pas d'espaces fines). */
 export function formatMeters(meters: number): string {
   if (!Number.isFinite(meters)) return '0';

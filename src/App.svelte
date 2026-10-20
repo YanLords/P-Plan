@@ -137,7 +137,16 @@
 
   <div class="work">
     <header class="topbar">
-      <input class="title" bind:value={store.plan.titre} spellcheck="false" aria-label="Titre du plan" />
+      <div class="titles">
+        <input class="title" bind:value={store.plan.titre} spellcheck="false" aria-label="Titre du plan" />
+        <input
+          class="site"
+          bind:value={store.plan.site}
+          spellcheck="false"
+          placeholder="Site, commune, lieu-dit…"
+          aria-label="Site du tir"
+        />
+      </div>
       <label class="date">
         <span>Date</span>
         <input type="date" bind:value={store.plan.date} />
@@ -204,18 +213,46 @@
     background: #fff;
   }
 
+  .titles {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 200px;
+    max-width: 380px;
+    flex: 0 1 auto;
+  }
+
   .title {
     font-size: 15px;
     font-weight: 600;
     color: var(--text-primary);
     border: 1px solid transparent;
     border-radius: 8px;
-    padding: 5px 8px;
+    padding: 4px 8px 2px;
     width: 340px;
     min-width: 200px;
     max-width: 380px;
     flex: 0 1 auto;
     outline: none;
+  }
+
+  .site {
+    font-size: 11px;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0 8px 4px;
+    width: 340px;
+    min-width: 200px;
+    max-width: 380px;
+    outline: none;
+  }
+
+  .site:hover,
+  .site:focus {
+    background: var(--bg-surface);
+    border-color: var(--border);
+    color: var(--text-primary);
   }
 
   .title:hover {

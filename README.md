@@ -11,8 +11,9 @@ Cartographie du site de tir, placement des éléments, distances de sécurité, 
 - **Carte** : fond plan (OpenStreetMap) ou satellite (Esri World Imagery), zoom/pan, échelle.
 - **Éléments** : artifice (avec cercle de distance de sécurité), barriérage, zone public,
   accès secours, point accueil secours, point d'eau, extincteur, échelle, marqueur libre.
-- **Catalogue** : 780+ articles importés de la base articles JCO (réf, calibre, distance de
-  sécurité). Clic = placement au centre de la carte, glisser = positionnement.
+- **Artifice générique** : un pin personnalisable (libellé, référence, calibre, distance de
+  sécurité). Le cercle de sécurité se règle à la souris : sélectionnez l'artifice, une poignée
+  orange apparaît à l'est du point, glissez-la pour ajuster la distance.
 - **Édition** : libellé, référence, calibre, distance de sécurité, notes ; sommets de
   barriérage / zone déplaçables ; suppression (bouton ou touche `Suppr`).
 - **GPS automatique** (WGS84) sur chaque élément, dans le panneau et dans le PDF.
@@ -36,17 +37,6 @@ npm run tauri:dev    # fenêtre desktop Tauri
 npm run build           # frontend seul (dist/)
 npm run tauri:build     # .app/.dmg (macOS) ou .msi/.exe (Windows)
 ```
-
-## Catalogue artifices
-
-```bash
-npm run import:artifices                       # source par défaut (base articles JCO)
-npm run import:artifices -- /chemin/articles.csv
-```
-
-Le script lit le CSV `;` (colonnes `Distance sécurité`, `ref`, dénomination, famille),
-extrait le calibre depuis la famille (`bombe_050mm` → 50 mm) et écrit
-`src/data/artifices.json`.
 
 ## Tests
 

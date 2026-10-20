@@ -4,6 +4,7 @@
   import 'leaflet/dist/leaflet.css';
   import { store } from './store.svelte';
   import { KIND_META, kindIcon, type PElement } from './elements';
+  import { destinationPoint, haversine, snapDistance } from './geo';
   import { searchPlaces, type Place } from './geocode';
 
   let { el }: { el: HTMLDivElement | null } = $props();
@@ -48,6 +49,14 @@
   const handleIcon = () =>
     L.divIcon({ className: 'pf-handle-wrap', html: '<div class="pf-handle"></div>', iconSize: [11, 11], iconAnchor: [5.5, 5.5] });
 
+  const radiusIcon = () =>
+    L.divIcon({
+      className: 'pf-radius-wrap',
+      html: '<div class="pf-radius"></div>',
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+    });
+
   function draw() {
     if (!map || !overlay) return;
     overlay.clearLayers();
@@ -73,22 +82,74 @@
         }
       }
 
-      if (e.kind === 'artifice' && e.ds && e.ds > 0) {
-        L.circle([e.lat, e.lng], {
-          radius: e.ds,
-          color,
-          weight: 1,
-          opacity: 0.8,
-          fillColor: color,
-          fillOpacity: 0.12,
-          interactive: false,
-        }).addTo(overlay!);
+      let onPinDrag: ((ll: L.LatLng) => void) | null = null;
+
+      if (e.kind === 'artifice') {
+        const ds = e.ds ?? 0;
+        if (ds > 0) {
+          const center = L.latLng(e.lat, e.lng);
+          const circle = L.circle(center, {
+            radius: ds,
+            color,
+            weight: 1,
+            opacity: 0.8,
+            fillColor: color,
+            fillOpacity: 0.12,
+            interactive: false,
+          }).addTo(overlay!);
+
+          // poignée de réglage du rayon, à l'est du point (axe carte)
+          if (sel) {
+            const at = destinationPoint(center.lat, center.lng, ds, 90);
+            const ray = L.polyline([center, at], {
+              color,
+              weight: 1,
+              dashArray: '3 4',
+              opacity: 0.8,
+              interactive: false,
+            }).addTo(overlay!);
+
+            const grip = L.marker(at, { icon: radiusIcon(), draggable: true, zIndexOffset: 700 }).addTo(
+              overlay!
+            );
+            grip.bindTooltip(`DS ${ds} m`, { direction: 'top', offset: [0, -12], sticky: false });
+
+            // mesure en direct pendant le geste : cercle, rayon et étiquette suivent la souris
+            grip.on('dragstart', () => grip.openTooltip());
+            grip.on('drag', (ev) => {
+              const ll = (ev as L.LeafletEvent & { latlng?: L.LatLng }).latlng ?? grip.getLatLng();
+              // aperçu déjà arrondi : ce qui est affiché est ce qui sera enregistré
+              const meters = snapDistance(haversine([center.lat, center.lng], [ll.lat, ll.lng]));
+              circle.setRadius(meters);
+              ray.setLatLngs([center, ll]);
+              grip.setTooltipContent(`DS ${meters} m`);
+            });
+            grip.on('dragend', () => {
+              const ll = grip.getLatLng();
+              const meters = haversine([center.lat, center.lng], [ll.lat, ll.lng]);
+              grip.closeTooltip();
+              store.setRadius(e.id, meters);
+            });
+
+            // déplacer le point déplace aussi son périmètre et sa poignée, en direct
+            onPinDrag = (ll) => {
+              const at2 = destinationPoint(ll.lat, ll.lng, ds, 90);
+              circle.setLatLng(ll);
+              ray.setLatLngs([ll, at2]);
+              grip.setLatLng(at2);
+            };
+          }
+        }
       }
 
       const m = L.marker([e.lat, e.lng], { icon: pin(e, sel), draggable: true, zIndexOffset: 300 }).addTo(
         overlay!
       );
       m.bindTooltip(`${i + 1}. ${e.label}`, { direction: 'top', offset: [0, -14], opacity: 0.95 });
+      m.on('drag', (ev) => {
+        const ll = (ev as L.LeafletEvent & { latlng?: L.LatLng }).latlng ?? m.getLatLng();
+        onPinDrag?.(ll);
+      });
       m.on('dragend', () => {
         const ll = m.getLatLng();
         store.moveTo(e.id, [ll.lat, ll.lng]);

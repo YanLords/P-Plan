@@ -1,6 +1,7 @@
 import type { Kind, PElement, Plan } from './elements';
 import { KIND_META } from './elements';
 import { History } from './history';
+import { snapDistance } from './geo';
 
 export const LS_KEY = 'plan-de-feu:autosave';
 
@@ -116,18 +117,11 @@ class PlanStore {
     el.lat = at[0];
     el.lng = at[1];
     el.kind = kind;
+    // artifice générique : périmètre de sécurité par défaut, réglable à la poignée
+    if (kind === 'artifice' && el.ds == null) el.ds = 20;
     this.plan.elements.push(el);
     this.selection = el.id;
     return el;
-  }
-
-  addArtifice(at: [number, number], a: { nom: string; ref: string; calibre: number | null; ds: number | null }) {
-    return this.addPoint('artifice', at, {
-      label: a.nom,
-      ref: a.ref,
-      calibre: a.calibre,
-      ds: a.ds,
-    });
   }
 
   /** Ajoute un sommet au tracé en cours. */
@@ -172,6 +166,13 @@ class PlanStore {
     const el = this.plan.elements.find((e) => e.id === id);
     if (!el?.ring?.[index]) return;
     el.ring[index] = at;
+  }
+
+  /** Rayon de sécurité (m) réglé à la souris : 1 m près < 25 m, pas de 5 m ensuite. */
+  setRadius(id: string, meters: number) {
+    const el = this.plan.elements.find((e) => e.id === id);
+    if (!el) return;
+    el.ds = snapDistance(meters);
   }
 
   update(id: string, patch: Partial<PElement>) {

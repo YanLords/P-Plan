@@ -1,7 +1,7 @@
 import type { Kind, PElement, Plan } from './elements';
 import { KIND_META, isShape, isZone } from './elements';
 import { History } from './history';
-import { snapDistance } from './geo';
+import { snapDistance, ringCentroid } from './geo';
 import { settings } from './settings.svelte';
 
 export const LS_KEY = 'plan-de-feu:autosave';
@@ -138,13 +138,16 @@ class PlanStore {
     if (!kind) return false;
     const min = isZone(kind) ? 3 : 2;
     if (ring.length < min) return false;
+    const points = ring.map((p) => [...p] as [number, number]);
+    // une zone porte son icône en son centre (comme l'outil Zone public)
+    const [lat, lng] = isZone(kind) ? ringCentroid(points) : points[0];
     const el: PElement = {
       id: crypto.randomUUID(),
       kind,
       label: KIND_META[kind].label,
-      lat: ring[0][0],
-      lng: ring[0][1],
-      ring: ring.map((p) => [...p] as [number, number]),
+      lat,
+      lng,
+      ring: points,
       ...(kind === 'zone_perso' ? { color: KIND_META[kind].color } : {}),
     };
     this.plan.elements.push(el);
@@ -169,6 +172,12 @@ class PlanStore {
     const el = this.plan.elements.find((e) => e.id === id);
     if (!el?.ring?.[index]) return;
     el.ring[index] = at;
+    // le sommet a bougé : l'icône de la zone reste au centre
+    if (isZone(el.kind)) {
+      const [lat, lng] = ringCentroid(el.ring);
+      el.lat = lat;
+      el.lng = lng;
+    }
   }
 
   /** Rayon de sécurité (m) réglé à la souris : 1 m près < 25 m, pas de 5 m ensuite. */

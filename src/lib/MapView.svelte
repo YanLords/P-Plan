@@ -4,7 +4,7 @@
   import 'leaflet/dist/leaflet.css';
   import { store } from './store.svelte';
   import { KIND_META, kindIcon, type PElement } from './elements';
-  import { destinationPoint, haversine } from './geo';
+  import { destinationPoint, haversine, snapDistance } from './geo';
   import { searchPlaces, type Place } from './geocode';
 
   let { el }: { el: HTMLDivElement | null } = $props();
@@ -118,10 +118,11 @@
             grip.on('dragstart', () => grip.openTooltip());
             grip.on('drag', (ev) => {
               const ll = (ev as L.LeafletEvent & { latlng?: L.LatLng }).latlng ?? grip.getLatLng();
-              const meters = Math.max(1, haversine([center.lat, center.lng], [ll.lat, ll.lng]));
+              // aperçu déjà arrondi : ce qui est affiché est ce qui sera enregistré
+              const meters = snapDistance(haversine([center.lat, center.lng], [ll.lat, ll.lng]));
               circle.setRadius(meters);
               ray.setLatLngs([center, ll]);
-              grip.setTooltipContent(`DS ${Math.round(meters)} m`);
+              grip.setTooltipContent(`DS ${meters} m`);
             });
             grip.on('dragend', () => {
               const ll = grip.getLatLng();

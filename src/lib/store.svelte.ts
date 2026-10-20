@@ -1,6 +1,7 @@
 import type { Kind, PElement, Plan } from './elements';
 import { KIND_META } from './elements';
 import { History } from './history';
+import { snapDistance } from './geo';
 
 export const LS_KEY = 'plan-de-feu:autosave';
 
@@ -167,11 +168,11 @@ class PlanStore {
     el.ring[index] = at;
   }
 
-  /** Rayon de sécurité (m) réglé à la souris depuis la poignée. */
+  /** Rayon de sécurité (m) réglé à la souris : 1 m près < 25 m, pas de 5 m ensuite. */
   setRadius(id: string, meters: number) {
     const el = this.plan.elements.find((e) => e.id === id);
     if (!el) return;
-    el.ds = Math.max(1, Math.round(meters));
+    el.ds = snapDistance(meters);
   }
 
   update(id: string, patch: Partial<PElement>) {

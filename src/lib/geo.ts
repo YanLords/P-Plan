@@ -59,6 +59,16 @@ export function destinationPoint(
   return [(lat2 * 180) / Math.PI, (((lng2 * 180) / Math.PI + 540) % 360) - 180];
 }
 
+/**
+ * Pas de réglage du rayon de sécurité à la souris :
+ * < 25 m au mètre près, ≥ 25 m par pas de 5 m.
+ */
+export function snapDistance(meters: number): number {
+  if (!Number.isFinite(meters)) return 1;
+  const v = Math.max(1, meters);
+  return v < 25 ? Math.round(v) : Math.round(v / 5) * 5;
+}
+
 /** Dénominateur d'échelle : distance terrain (m) ramenée à une largeur papier (mm). */
 export function scaleDenominator(groundMeters: number, imageWidthMm: number): number {
   if (!(groundMeters > 0) || !(imageWidthMm > 0)) return 0;

@@ -100,7 +100,7 @@ function legendRow(
   if (e.ring?.length) {
     details.push(
       isZone(e.kind)
-        ? `${e.ring.length} pts · ${Math.round(ringArea(e.ring)).toLocaleString('fr-FR')} m²`
+        ? `${e.ring.length} pts · ${Math.round(ringArea(e.ring)).toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ')} m²`
         : `${e.ring.length} pts`
     );
   }

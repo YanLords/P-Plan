@@ -10,6 +10,7 @@ import {
   snapDistance,
   formatCoord,
   ringArea,
+  ringCentroid,
   scaleDenominator,
 } from './geo.ts';
 
@@ -87,6 +88,31 @@ test('snapDistance : au mètre sous 25 m, par 5 m au-delà', () => {
   assert.equal(snapDistance(Number.NaN), 1);
   // toute valeur ≥ 25 est un multiple de 5
   for (const m of [25, 31, 44.9, 99.99, 1234]) assert.equal(snapDistance(m) % 5, 0, `${m}`);
+});
+
+test('ringCentroid : centre du carré, du triangle, repli sur un segment', () => {
+  const square: [number, number][] = [
+    [45, 2],
+    [45, 2.001],
+    [45.001, 2.001],
+    [45.001, 2],
+  ];
+  const [lat, lng] = ringCentroid(square);
+  assert.ok(Math.abs(lat - 45.0005) < 1e-6, `lat ${lat}`);
+  assert.ok(Math.abs(lng - 2.0005) < 1e-6, `lng ${lng}`);
+
+  const triangle: [number, number][] = [
+    [0, 0],
+    [0, 2],
+    [2, 0],
+  ];
+  const [tLat, tLng] = ringCentroid(triangle);
+  assert.ok(Math.abs(tLat - 2 / 3) < 0.002, `tLat ${tLat}`);
+  assert.ok(Math.abs(tLng - 2 / 3) < 0.002, `tLng ${tLng}`);
+
+  // segment (2 points) : barycentre au milieu
+  assert.deepEqual(ringCentroid([[10, 20], [12, 22]]), [11, 21]);
+  assert.deepEqual(ringCentroid([]), [0, 0]);
 });
 
 test('formatCoord / scaleDenominator', () => {

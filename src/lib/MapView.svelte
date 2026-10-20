@@ -142,9 +142,12 @@
         }
       }
 
-      const m = L.marker([e.lat, e.lng], { icon: pin(e, sel), draggable: true, zIndexOffset: 300 }).addTo(
-        overlay!
-      );
+      // une zone/ligne se déplace par ses sommets : l'icône reste au centre
+      const m = L.marker([e.lat, e.lng], {
+        icon: pin(e, sel),
+        draggable: !e.ring,
+        zIndexOffset: 300,
+      }).addTo(overlay!);
       m.bindTooltip(`${i + 1}. ${e.label}`, { direction: 'top', offset: [0, -14], opacity: 0.95 });
       if (!settings.value.showLabels) m.unbindTooltip();
       m.on('drag', (ev) => {
@@ -237,6 +240,7 @@
     overlay = L.layerGroup().addTo(m);
     L.control.scale({ metric: true, imperial: false, position: 'bottomright' }).addTo(m);
     ensureBase(store.plan.base);
+    draw(); // le premier passage de l'$effect a lieu avant la création de la carte
 
     m.on('moveend', () => {
       store.plan.center = [m.getCenter().lat, m.getCenter().lng];

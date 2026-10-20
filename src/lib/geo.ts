@@ -89,3 +89,35 @@ export function ringArea(ring: [number, number][]): number {
   }
   return Math.abs(sum / 2);
 }
+
+/** Centre d'un anneau : centroïde pondéré par l'aire (barycentre si anneau dégénéré). */
+export function ringCentroid(ring: [number, number][]): [number, number] {
+  if (!ring.length) return [0, 0];
+  const average = (): [number, number] => {
+    const sum = ring.reduce<[number, number]>((a, p) => [a[0] + p[0], a[1] + p[1]], [0, 0]);
+    return [sum[0] / ring.length, sum[1] / ring.length];
+  };
+  if (ring.length < 3) return average();
+
+  const lat0 = ring.reduce((s, p) => s + p[0], 0) / ring.length;
+  const mx = 111320 * Math.cos((lat0 * Math.PI) / 180);
+  const my = 110540;
+  let area = 0;
+  let cx = 0;
+  let cy = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const [aLat, aLng] = ring[i];
+    const [bLat, bLng] = ring[(i + 1) % ring.length];
+    const ax = aLng * mx;
+    const ay = aLat * my;
+    const bx = bLng * mx;
+    const by = bLat * my;
+    const cross = ax * by - bx * ay;
+    area += cross;
+    cx += (ax + bx) * cross;
+    cy += (ay + by) * cross;
+  }
+  area /= 2;
+  if (Math.abs(area) < 1e-6) return average();
+  return [cy / (6 * area) / my, cx / (6 * area) / mx];
+}

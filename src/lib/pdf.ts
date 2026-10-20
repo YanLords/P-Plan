@@ -17,7 +17,10 @@ function kindCount(plan: Plan, kind: PElement['kind']) {
   return plan.elements.filter((e) => e.kind === kind).length;
 }
 
-async function capture(mapEl: HTMLElement): Promise<string | null> {
+async function capture(mapEl: HTMLElement, boost?: (on: boolean) => void): Promise<string | null> {
+  boost?.(true);
+  // laisse le navigateur repeindre traits/icônes épaissis avant la capture
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   try {
     // capture 2x puis réduction + JPEG : un PNG plein écran ferait 25 Mo de PDF
     const raw = await toPng(mapEl, { pixelRatio: 2, cacheBust: true, backgroundColor: '#ffffff' });
@@ -26,6 +29,8 @@ async function capture(mapEl: HTMLElement): Promise<string | null> {
     // ponytail: tuiles distantes non capturables (CORS/réseau) -> plan sans fond de carte
     console.warn('[pdf] capture de la carte impossible', err);
     return null;
+  } finally {
+    boost?.(false);
   }
 }
 
@@ -118,7 +123,12 @@ function legendRow(
   return cursor + 1.6;
 }
 
-export async function buildPdf(plan: Plan, mapEl: HTMLElement | null, mapWidthPx: number): Promise<Uint8Array> {
+export async function buildPdf(
+  plan: Plan,
+  mapEl: HTMLElement | null,
+  mapWidthPx: number,
+  boost?: (on: boolean) => void
+): Promise<Uint8Array> {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const [lat, lng] = plan.center;
   const nArt = kindCount(plan, 'artifice');
@@ -138,7 +148,7 @@ export async function buildPdf(plan: Plan, mapEl: HTMLElement | null, mapWidthPx
   doc.setTextColor(110, 110, 110);
   doc.text(`Plan de feu · ${plan.date}`, 10, 21.5);
 
-  const png = mapEl ? await capture(mapEl) : null;
+  const png = mapEl ? await capture(mapEl, boost) : null;
   if (png) {
     doc.addImage(png, 'JPEG', IMG.x, IMG.y, IMG.w, imgH, undefined, 'FAST');
   } else {

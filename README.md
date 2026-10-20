@@ -9,7 +9,8 @@ Cartographie du site de tir, placement des éléments, distances de sécurité, 
 
 - **Carte** : fond plan (OpenStreetMap) ou satellite (Esri World Imagery), zoom/pan, échelle.
 - **Éléments** : artifice (avec cercle de distance de sécurité), barriérage, zone public,
-  accès secours, point accueil secours, point d'eau, extincteur, échelle, marqueur libre.
+  **zone perso** (même tracé que la zone public, couleur et libellé personnalisables), accès
+  secours, point accueil secours, point d'eau, extincteur, échelle, marqueur libre.
 - **Artifice générique** : un pin personnalisable (libellé, référence, calibre, distance de
   sécurité). Le cercle de sécurité se règle à la souris : sélectionnez l'artifice, une poignée
   orange apparaît à l'est du point, glissez-la pour ajuster la distance.

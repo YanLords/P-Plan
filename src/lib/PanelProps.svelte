@@ -1,6 +1,6 @@
 <script lang="ts">
   import { store } from './store.svelte';
-  import { KIND_META } from './elements';
+  import { KIND_META, colorOf, isZone } from './elements';
   import { formatCoord, ringArea } from './geo';
 
   const el = $derived(store.selected);
@@ -17,7 +17,7 @@
 {#if el}
   <aside class="props">
     <header>
-      <span class="badge" style="--c:{KIND_META[el.kind].color}">{KIND_META[el.kind].label}</span>
+      <span class="badge" style="--c:{colorOf(el)}">{KIND_META[el.kind].label}</span>
       <button class="close" onclick={() => store.select(null)} title="Fermer">×</button>
     </header>
 
@@ -44,10 +44,17 @@
       <p class="tip">Poignée orange sur la carte pour régler le rayon à la souris.</p>
     {/if}
 
+    {#if el.kind === 'zone_perso'}
+      <label>
+        <span>Couleur de la zone</span>
+        <input class="color" type="color" bind:value={el.color} />
+      </label>
+    {/if}
+
     {#if el.ring?.length}
       <div class="stat">
         {el.ring.length} sommets
-        {#if el.kind === 'zone_public'}
+        {#if isZone(el.kind)}
           · ≈ {Math.round(ringArea(el.ring)).toLocaleString('fr-FR')} m²
         {/if}
         <span class="hint">glissez les poignées sur la carte</span>
@@ -159,6 +166,13 @@
 
   .row .sm {
     max-width: 108px;
+  }
+
+  input.color {
+    padding: 2px;
+    width: 100%;
+    height: 30px;
+    cursor: pointer;
   }
 
   .tip {

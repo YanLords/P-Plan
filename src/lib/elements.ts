@@ -32,6 +32,8 @@ export interface PElement {
 export interface Plan {
   version: 1;
   titre: string;
+  /** lieu du tir (renseigné par la recherche d'adresse, éditable) */
+  site: string;
   date: string;
   center: [number, number];
   zoom: number;

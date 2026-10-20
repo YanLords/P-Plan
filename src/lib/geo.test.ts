@@ -13,6 +13,7 @@ import {
   ringCentroid,
   ringLength,
   formatMeters,
+  scaleBarLength,
   scaleDenominator,
 } from './geo.ts';
 
@@ -156,4 +157,27 @@ test('formatCoord / scaleDenominator', () => {
   assert.equal(formatCoord(48.1234567, 2.1), '48.12346, 2.10000');
   assert.equal(scaleDenominator(190, 190), 1000);
   assert.equal(scaleDenominator(0, 190), 0);
+});
+
+test('scaleBarLength : valeurs rondes 1-2-5, jamais plus large que maxMm', () => {
+  // 1:16000 -> 16 m par mm ; 40 mm max = 640 m -> barre de 500 m
+  const a = scaleBarLength(16, 40);
+  assert.equal(a.meters, 500);
+  assert.ok(a.mm <= 40 && a.mm > 30);
+
+  // très grande échelle : 0,5 m/mm -> 20 m sur 40 mm
+  assert.equal(scaleBarLength(0.5, 40).meters, 20);
+
+  // petite échelle : 500 m/mm -> 20 km pile sur 40 mm
+  assert.equal(scaleBarLength(500, 40).meters, 20000);
+
+  for (const v of [0.2, 3, 16, 90, 400]) {
+    const bar = scaleBarLength(v, 40);
+    assert.ok(bar.mm <= 40 && bar.mm > 0, `barre ${bar.mm} mm pour ${v}`);
+    const mantissa = bar.meters / 10 ** Math.floor(Math.log10(bar.meters));
+    assert.ok([1, 2, 5].some((k) => Math.abs(mantissa - k) < 1e-9), `${bar.meters} m non rond`);
+  }
+
+  assert.deepEqual(scaleBarLength(0, 40), { meters: 0, mm: 0 });
+  assert.deepEqual(scaleBarLength(16, 0), { meters: 0, mm: 0 });
 });

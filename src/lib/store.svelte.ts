@@ -10,6 +10,7 @@ export function emptyPlan(): Plan {
   return {
     version: 1,
     titre: 'Plan de disposition',
+    site: '',
     date: new Date().toISOString().slice(0, 10),
     center: [46.6, 2.4],
     zoom: 5,
@@ -23,7 +24,7 @@ function loadLocal(): Plan {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) {
       const p = JSON.parse(raw) as Plan;
-      if (p?.version === 1 && Array.isArray(p.elements)) return p;
+      if (p?.version === 1 && Array.isArray(p.elements)) return { ...p, site: String(p.site ?? '') };
     }
   } catch {
     /* autosave illisible : on repart d'un plan vide */
@@ -98,6 +99,11 @@ class PlanStore {
 
   setBase(base: 'osm' | 'sat') {
     this.plan.base = base;
+  }
+
+  setSite(label: string) {
+    const site = label.trim();
+    if (site && site !== this.plan.site) this.plan.site = site;
   }
 
   select(id: string | null) {

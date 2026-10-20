@@ -4,6 +4,7 @@
   import 'leaflet/dist/leaflet.css';
   import { store } from './store.svelte';
   import { KIND_META, kindIcon, type PElement } from './elements';
+  import { destinationPoint, haversine } from './geo';
   import { searchPlaces, type Place } from './geocode';
 
   let { el }: { el: HTMLDivElement | null } = $props();
@@ -48,6 +49,14 @@
   const handleIcon = () =>
     L.divIcon({ className: 'pf-handle-wrap', html: '<div class="pf-handle"></div>', iconSize: [11, 11], iconAnchor: [5.5, 5.5] });
 
+  const radiusIcon = () =>
+    L.divIcon({
+      className: 'pf-radius-wrap',
+      html: '<div class="pf-radius"></div>',
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+    });
+
   function draw() {
     if (!map || !overlay) return;
     overlay.clearLayers();
@@ -73,16 +82,41 @@
         }
       }
 
-      if (e.kind === 'artifice' && e.ds && e.ds > 0) {
-        L.circle([e.lat, e.lng], {
-          radius: e.ds,
-          color,
-          weight: 1,
-          opacity: 0.8,
-          fillColor: color,
-          fillOpacity: 0.12,
-          interactive: false,
-        }).addTo(overlay!);
+      if (e.kind === 'artifice') {
+        const ds = e.ds ?? 0;
+        if (ds > 0) {
+          const circle = L.circle([e.lat, e.lng], {
+            radius: ds,
+            color,
+            weight: 1,
+            opacity: 0.8,
+            fillColor: color,
+            fillOpacity: 0.12,
+            interactive: false,
+          }).addTo(overlay!);
+
+          // poignée de réglage du rayon, à l'est du point (axe carte)
+          if (sel) {
+            const center: [number, number] = [e.lat, e.lng];
+            const at = destinationPoint(e.lat, e.lng, ds, 90);
+            L.polyline([center, at], {
+              color,
+              weight: 1,
+              dashArray: '3 4',
+              opacity: 0.8,
+              interactive: false,
+            }).addTo(overlay!);
+
+            const grip = L.marker(at, { icon: radiusIcon(), draggable: true, zIndexOffset: 700 }).addTo(
+              overlay!
+            );
+            grip.bindTooltip(`DS ${ds} m`, { direction: 'top', offset: [0, -10], sticky: false });
+            grip.on('dragend', () => {
+              const ll = grip.getLatLng();
+              store.setRadius(e.id, haversine(center, [ll.lat, ll.lng]));
+            });
+          }
+        }
       }
 
       const m = L.marker([e.lat, e.lng], { icon: pin(e, sel), draggable: true, zIndexOffset: 300 }).addTo(

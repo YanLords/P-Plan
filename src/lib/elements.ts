@@ -36,16 +36,6 @@ export interface Plan {
   elements: PElement[];
 }
 
-export interface Artifice {
-  ref: string;
-  nom: string;
-  famille: string;
-  calibre: number | null;
-  ds: number | null;
-  duree: number | null;
-  net: number | null;
-}
-
 export const KIND_META: Record<
   Kind,
   { label: string; color: string; shape: 'point' | 'line' | 'zone' }

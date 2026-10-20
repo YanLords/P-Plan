@@ -90,6 +90,23 @@ export function ringArea(ring: [number, number][]): number {
   return Math.abs(sum / 2);
 }
 
+/** Longueur d'une ligne (m) ; `closed` ajoute le segment de fermeture (périmètre). */
+export function ringLength(ring: [number, number][], closed = false): number {
+  if (ring.length < 2) return 0;
+  let total = 0;
+  for (let i = 1; i < ring.length; i++) total += haversine(ring[i - 1], ring[i]);
+  if (closed) total += haversine(ring[ring.length - 1], ring[0]);
+  return total;
+}
+
+/** Nombre en mètres lisible : « 1 235 » (espaces normales, pas d'espaces fines). */
+export function formatMeters(meters: number): string {
+  if (!Number.isFinite(meters)) return '0';
+  return Math.round(meters)
+    .toLocaleString('fr-FR')
+    .replace(/[\u202f\u00a0]/g, ' ');
+}
+
 /** Centre d'un anneau : centroïde pondéré par l'aire (barycentre si anneau dégénéré). */
 export function ringCentroid(ring: [number, number][]): [number, number] {
   if (!ring.length) return [0, 0];

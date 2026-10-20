@@ -2,7 +2,7 @@ import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
 import type { Plan, PElement, Kind } from './elements';
 import { KIND_META, colorOf, kindIconSvg, isZone } from './elements';
-import { formatCoord, metersPerPixel, ringArea, scaleDenominator } from './geo';
+import { formatCoord, formatMeters, metersPerPixel, ringArea, ringLength, scaleDenominator } from './geo';
 
 const IMG = { x: 10, y: 26, w: 190, h: 138 };
 const COL = { x: 205, w: 87 };
@@ -100,8 +100,8 @@ function legendRow(
   if (e.ring?.length) {
     details.push(
       isZone(e.kind)
-        ? `${e.ring.length} pts · ${Math.round(ringArea(e.ring)).toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ')} m²`
-        : `${e.ring.length} pts`
+        ? `${e.ring.length} pts · périmètre ${formatMeters(ringLength(e.ring, true))} m · ${formatMeters(ringArea(e.ring))} m²`
+        : `${e.ring.length} pts · longueur ${formatMeters(ringLength(e.ring))} m`
     );
   }
   details.push(formatCoord(e.lat, e.lng));

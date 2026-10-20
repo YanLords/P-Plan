@@ -4,6 +4,7 @@
   import 'leaflet/dist/leaflet.css';
   import { store } from './store.svelte';
   import { KIND_META, kindIcon, type PElement } from './elements';
+  import { searchPlaces, type Place } from './geocode';
 
   let { el }: { el: HTMLDivElement | null } = $props();
 
@@ -157,6 +158,7 @@
 
     m.on('click', (ev: L.LeafletMouseEvent) => {
       const at: [number, number] = [ev.latlng.lat, ev.latlng.lng];
+      places = [];
       if (store.tool === 'barrierage' || store.tool === 'zone_public') store.addVertex(at);
       else if (store.tool !== 'select') store.addPoint(store.tool, at);
       else store.select(null);
@@ -178,8 +180,7 @@
     };
   });
 
-  const shaping = $derived(store.tool === 'barrierage' || store.tool === 'zone_public');
-  const hint = $derived(
+  const shaping = $derived(store.tool === 'barrierage' || store.tool === 'zone_public');  const hint = $derived(
     store.tool === 'select'
       ? 'Cliquez un élément pour l’éditer · glissez pour déplacer'
       : shaping
@@ -188,9 +189,60 @@
           : 'Cliquez les points du barriérage · Entrée pour terminer'
         : `Cliquez sur la carte pour placer : ${KIND_META[store.tool].label}`
   );
+  // ---- Recherche de lieu (barre d'adresse)
+  let q = $state('');
+  let places = $state<Place[]>([]);
+  let searching = $state(false);
+  let searched = $state(false);
+
+  async function findLieu(e?: SubmitEvent) {
+    e?.preventDefault();
+    const query = q.trim();
+    if (query.length < 3 || !map) return;
+    searching = true;
+    searched = false;
+    places = [];
+    try {
+      places = await searchPlaces(query);
+    } finally {
+      searching = false;
+      searched = true;
+    }
+  }
+
+  function goTo(p: Place) {
+    places = [];
+    searched = false;
+    q = p.label;
+    map?.flyTo([p.lat, p.lng], 16, { duration: 0.9 });
+  }
 </script>
 
 <div class="ui">
+  <div class="search">
+    <form onsubmit={findLieu}>
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
+      <input bind:value={q} placeholder="Rechercher une adresse, une commune…" aria-label="Rechercher un lieu" />
+      {#if searching}
+        <span class="spinner" aria-hidden="true"></span>
+      {/if}
+    </form>
+    {#if places.length}
+      <ul>
+        {#each places as p, i (i)}
+          <li>
+            <button onclick={() => goTo(p)}>
+              <span class="lbl">{p.label}</span>
+              {#if p.detail}<span class="det">{p.detail}</span>{/if}
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {:else if searched && !searching}
+      <div class="none">Aucun résultat pour « {q} »</div>
+    {/if}
+  </div>
+
   <div class="base-switch">
     <button class:active={store.plan.base === 'osm'} onclick={() => store.setBase('osm')}>Plan</button>
     <button class:active={store.plan.base === 'sat'} onclick={() => store.setBase('sat')}>Satellite</button>
@@ -222,8 +274,106 @@
   }
 
   .base-switch,
-  .draft-bar {
+  .draft-bar,
+  .search {
     pointer-events: auto;
+  }
+
+  .search {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(380px, calc(100% - 120px));
+    z-index: 550;
+  }
+
+  .search form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid var(--border-card);
+    border-radius: 10px;
+    padding: 0 10px;
+    height: 36px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.09);
+    color: var(--text-muted);
+  }
+
+  .search form:focus-within {
+    border-color: var(--accent);
+  }
+
+  .search input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: none;
+    font-size: 12.5px;
+    color: var(--text-primary);
+  }
+
+  .search ul {
+    list-style: none;
+    margin-top: 5px;
+    background: #fff;
+    border: 1px solid var(--border-card);
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.11);
+    overflow: hidden;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .search li button {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 1px solid #f2f2f2;
+  }
+
+  .search li button:hover {
+    background: var(--accent-light);
+  }
+
+  .lbl {
+    font-size: 12px;
+    color: var(--text-primary);
+  }
+
+  .det {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .none {
+    margin-top: 5px;
+    background: #fff;
+    border: 1px solid var(--border-card);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--border-card);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .base-switch {
@@ -254,7 +404,7 @@
 
   .draft-bar {
     position: absolute;
-    top: 12px;
+    top: 58px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 500;

@@ -28,26 +28,40 @@ export function fromNominatim(json: any): Place[] {
     .filter((p: Place) => p.label && Number.isFinite(p.lat) && Number.isFinite(p.lng));
 }
 
-/** Recherche d'adresse : Base Adresse Nationale (FR) puis Nominatim (reste du monde). */
-export async function searchPlaces(query: string, limit = 6): Promise<Place[]> {
+export type GeocodeProvider = 'gouv' | 'nominatim';
+
+/**
+ * Source(s) interrogée(s) : la BAN seule en frappe au clavier (autocomplete),
+ * BAN puis Nominatim pour une recherche explicite (hors France).
+ */
+export function providersFor(autocomplete: boolean): GeocodeProvider[] {
+  return autocomplete ? ['gouv'] : ['gouv', 'nominatim'];
+}
+
+export interface SearchOptions {
+  signal?: AbortSignal;
+  autocomplete?: boolean;
+}
+
+export async function searchPlaces(query: string, limit = 6, options: SearchOptions = {}): Promise<Place[]> {
   const q = query.trim();
   if (q.length < 3) return [];
+  const { signal, autocomplete = false } = options;
 
-  try {
-    const r = await fetch(`${GOUV}?q=${encodeURIComponent(q)}&limit=${limit}`);
-    if (r.ok) {
-      const places = fromGouv(await r.json());
+  for (const provider of providersFor(autocomplete)) {
+    const url =
+      provider === 'gouv'
+        ? `${GOUV}?q=${encodeURIComponent(q)}&limit=${limit}`
+        : `${NOMINATIM}?format=json&limit=${limit}&q=${encodeURIComponent(q)}`;
+    try {
+      const r = await fetch(url, { signal });
+      if (!r.ok) continue;
+      const places = provider === 'gouv' ? fromGouv(await r.json()) : fromNominatim(await r.json());
       if (places.length) return places.slice(0, limit);
+    } catch (err) {
+      if ((err as { name?: string } | null)?.name === 'AbortError') return [];
+      /* source indisponible : on passe à la suivante */
     }
-  } catch {
-    /* hors ligne ou API indisponible : on tente Nominatim */
-  }
-
-  try {
-    const r = await fetch(`${NOMINATIM}?format=json&limit=${limit}&q=${encodeURIComponent(q)}`);
-    if (r.ok) return fromNominatim(await r.json()).slice(0, limit);
-  } catch {
-    /* aucune source disponible */
   }
   return [];
 }

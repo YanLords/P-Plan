@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import L from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import { store } from './store.svelte';
@@ -292,40 +292,112 @@
         ? 'Cliquez les sommets · Entrée pour terminer'
         : `Cliquez sur la carte pour placer : ${KIND_META[store.tool].label}`
   );
-  // ---- Recherche de lieu (barre d'adresse)
+  // ---- Recherche de lieu : suggestions au fil de la saisie
   let q = $state('');
   let places = $state<Place[]>([]);
   let searching = $state(false);
   let searched = $state(false);
+  let active = $state(-1);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let inFlight: AbortController | null = null;
+
+  async function suggest() {
+    const query = q.trim();
+    inFlight?.abort();
+    if (query.length < 3) {
+      places = [];
+      searched = false;
+      active = -1;
+      return;
+    }
+    const controller = new AbortController();
+    inFlight = controller;
+    searching = true;
+    try {
+      const found = await searchPlaces(query, 6, { signal: controller.signal, autocomplete: true });
+      if (inFlight === controller) {
+        places = found;
+        active = -1;
+        searched = true;
+      }
+    } finally {
+      if (inFlight === controller) searching = false;
+    }
+  }
+
+  function scheduleSuggest() {
+    clearTimeout(timer);
+    timer = setTimeout(suggest, 220);
+  }
 
   async function findLieu(e?: SubmitEvent) {
     e?.preventDefault();
     const query = q.trim();
     if (query.length < 3 || !map) return;
+    clearTimeout(timer);
+    inFlight?.abort();
     searching = true;
     searched = false;
-    places = [];
     try {
       places = await searchPlaces(query);
     } finally {
       searching = false;
       searched = true;
+      active = -1;
     }
   }
 
   function goTo(p: Place) {
     places = [];
     searched = false;
+    active = -1;
     q = p.label;
     map?.flyTo([p.lat, p.lng], 16, { duration: 0.9 });
   }
+
+  function onSearchKey(e: KeyboardEvent) {
+    if (!places.length) {
+      if (e.key === 'Escape') places = [];
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      active = (active + 1) % places.length;
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      active = active <= 0 ? places.length - 1 : active - 1;
+    } else if (e.key === 'Enter' && active >= 0) {
+      e.preventDefault();
+      const p = places[active];
+      if (p) goTo(p);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      places = [];
+      active = -1;
+    }
+  }
+
+  onDestroy(() => {
+    clearTimeout(timer);
+    inFlight?.abort();
+  });
 </script>
 
 <div class="ui">
   <div class="search">
     <form onsubmit={findLieu}>
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
-      <input bind:value={q} placeholder="Rechercher une adresse, une commune…" aria-label="Rechercher un lieu" />
+      <input
+        bind:value={q}
+        oninput={scheduleSuggest}
+        onkeydown={onSearchKey}
+        placeholder="Rechercher une adresse, une commune…"
+        aria-label="Rechercher un lieu"
+        aria-autocomplete="list"
+        aria-expanded={places.length > 0}
+        autocomplete="off"
+        spellcheck="false"
+      />
       {#if searching}
         <span class="spinner" aria-hidden="true"></span>
       {/if}
@@ -333,15 +405,15 @@
     {#if places.length}
       <ul>
         {#each places as p, i (i)}
-          <li>
-            <button onclick={() => goTo(p)}>
+          <li class:active={i === active}>
+            <button onclick={() => goTo(p)} onmouseenter={() => (active = i)}>
               <span class="lbl">{p.label}</span>
               {#if p.detail}<span class="det">{p.detail}</span>{/if}
             </button>
           </li>
         {/each}
       </ul>
-    {:else if searched && !searching}
+    {:else if searched && !searching && q.trim().length >= 3}
       <div class="none">Aucun résultat pour « {q} »</div>
     {/if}
   </div>
@@ -440,7 +512,8 @@
     border-bottom: 1px solid #f2f2f2;
   }
 
-  .search li button:hover {
+  .search li button:hover,
+  .search li.active button {
     background: var(--accent-light);
   }
 

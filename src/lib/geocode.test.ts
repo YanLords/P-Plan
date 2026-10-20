@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fromGouv, fromNominatim } from './geocode.ts';
+import { fromGouv, fromNominatim, providersFor } from './geocode.ts';
 
 test('fromGouv : GeoJSON Base Adresse Nationale -> Place[]', () => {
   const places = fromGouv({
@@ -35,4 +35,9 @@ test('payloads inattendus : tableau vide, jamais d’exception', () => {
   assert.deepEqual(fromGouv({}), []);
   assert.deepEqual(fromNominatim(null), []);
   assert.deepEqual(fromNominatim({ error: 'x' }), []);
+});
+
+test('providersFor : BAN seule en autocomplete, BAN puis Nominatim sinon', () => {
+  assert.deepEqual(providersFor(true), ['gouv']);
+  assert.deepEqual(providersFor(false), ['gouv', 'nominatim']);
 });

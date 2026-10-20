@@ -98,10 +98,13 @@
             interactive: false,
           }).addTo(overlay!);
 
+          let ray: L.Polyline | null = null;
+          let grip: L.Marker | null = null;
+
           // poignée de réglage du rayon, à l'est du point (axe carte)
           if (sel) {
             const at = destinationPoint(center.lat, center.lng, ds, 90);
-            const ray = L.polyline([center, at], {
+            ray = L.polyline([center, at], {
               color,
               weight: 1,
               dashArray: '3 4',
@@ -109,36 +112,37 @@
               interactive: false,
             }).addTo(overlay!);
 
-            const grip = L.marker(at, { icon: radiusIcon(), draggable: true, zIndexOffset: 700 }).addTo(
-              overlay!
-            );
-            grip.bindTooltip(`DS ${ds} m`, { direction: 'top', offset: [0, -12], sticky: false });
+            const g = L.marker(at, { icon: radiusIcon(), draggable: true, zIndexOffset: 700 }).addTo(overlay!);
+            grip = g;
+            g.bindTooltip(`DS ${ds} m`, { direction: 'top', offset: [0, -12], sticky: false });
 
             // mesure en direct pendant le geste : cercle, rayon et étiquette suivent la souris
-            grip.on('dragstart', () => grip.openTooltip());
-            grip.on('drag', (ev) => {
-              const ll = (ev as L.LeafletEvent & { latlng?: L.LatLng }).latlng ?? grip.getLatLng();
+            g.on('dragstart', () => g.openTooltip());
+            g.on('drag', (ev) => {
+              const ll = (ev as L.LeafletEvent & { latlng?: L.LatLng }).latlng ?? g.getLatLng();
               // aperçu déjà arrondi : ce qui est affiché est ce qui sera enregistré
               const meters = snapDistance(haversine([center.lat, center.lng], [ll.lat, ll.lng]));
               circle.setRadius(meters);
-              ray.setLatLngs([center, ll]);
-              grip.setTooltipContent(`DS ${meters} m`);
+              ray?.setLatLngs([center, ll]);
+              g.setTooltipContent(`DS ${meters} m`);
             });
-            grip.on('dragend', () => {
-              const ll = grip.getLatLng();
+            g.on('dragend', () => {
+              const ll = g.getLatLng();
               const meters = haversine([center.lat, center.lng], [ll.lat, ll.lng]);
-              grip.closeTooltip();
+              g.closeTooltip();
               store.setRadius(e.id, meters);
             });
-
-            // déplacer le point déplace aussi son périmètre et sa poignée, en direct
-            onPinDrag = (ll) => {
-              const at2 = destinationPoint(ll.lat, ll.lng, ds, 90);
-              circle.setLatLng(ll);
-              ray.setLatLngs([ll, at2]);
-              grip.setLatLng(at2);
-            };
           }
+
+          // déplacer le point déplace son périmètre en direct (sélectionné ou non)
+          onPinDrag = (ll) => {
+            circle.setLatLng(ll);
+            if (ray && grip) {
+              const at = destinationPoint(ll.lat, ll.lng, ds, 90);
+              ray.setLatLngs([ll, at]);
+              grip.setLatLng(at);
+            }
+          };
         }
       }
 

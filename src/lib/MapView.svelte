@@ -5,7 +5,7 @@
   import { store } from './store.svelte';
   import { settings } from './settings.svelte';
   import { KIND_META, kindIcon, colorOf, isShape, isZone, TOOL_ORDER, type PElement } from './elements';
-  import { destinationPoint, haversine, snapDistance } from './geo';
+  import { destinationPoint, formatMeters, haversine, ringLength, snapDistance } from './geo';
   import { kindCursor } from './cursors';
   import { searchPlaces, type Place } from './geocode';
 
@@ -71,6 +71,15 @@
         const shape = isZone(e.kind)
             ? L.polygon(e.ring, { color, weight: 2, fillColor: color, fillOpacity: 0.12 })
             : L.polyline(e.ring, { color, weight: 3, dashArray: '7 5' });        shape.addTo(overlay!).on('click', () => store.select(e.id));
+        // barrière : longueur survolée = métrage à couvrir
+        if (!isZone(e.kind) && e.ring) {
+          shape.bindTooltip(`${formatMeters(ringLength(e.ring))} m`, {
+            sticky: true,
+            direction: 'top',
+            opacity: 0.95,
+          });
+          if (!settings.value.showLabels) shape.unbindTooltip();
+        }
         if (sel) {
           e.ring.forEach((p, idx) => {
             const h = L.marker(p, { icon: handleIcon(), draggable: true, zIndexOffset: 600 }).addTo(overlay!);

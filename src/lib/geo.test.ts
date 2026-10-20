@@ -11,6 +11,8 @@ import {
   formatCoord,
   ringArea,
   ringCentroid,
+  ringLength,
+  formatMeters,
   scaleDenominator,
 } from './geo.ts';
 
@@ -113,6 +115,41 @@ test('ringCentroid : centre du carré, du triangle, repli sur un segment', () =>
   // segment (2 points) : barycentre au milieu
   assert.deepEqual(ringCentroid([[10, 20], [12, 22]]), [11, 21]);
   assert.deepEqual(ringCentroid([]), [0, 0]);
+});
+
+test('ringLength : ligne ouverte, périmètre fermé, cas dégénérés', () => {
+  const dLng = 100 / 111320; // ~100 m en longitude à l'équateur
+  const line: [number, number][] = [
+    [0, 0],
+    [0, dLng],
+  ];
+  assert.ok(Math.abs(ringLength(line) - 100) < 0.2, `ligne ${ringLength(line)}`);
+  // fermée, la ligne referme le même tracé : 2 trajets de 100 m
+  assert.ok(Math.abs(ringLength(line, true) - 200) < 0.4);
+
+  const lat = 45;
+  const dy = 100 / 110540;
+  const dx = 100 / (111320 * Math.cos((lat * Math.PI) / 180));
+  const square: [number, number][] = [
+    [lat, 2],
+    [lat + dy, 2],
+    [lat + dy, 2 + dx],
+    [lat, 2 + dx],
+  ];
+  // ouvert : 3 côtés, fermé : le périmètre complet
+  assert.ok(Math.abs(ringLength(square) - 300) / 300 < 0.02);
+  assert.ok(Math.abs(ringLength(square, true) - 400) / 400 < 0.02);
+
+  assert.equal(ringLength([]), 0);
+  assert.equal(ringLength([[1, 2]]), 0);
+});
+
+test('formatMeters : arrondi et espaces normales', () => {
+  assert.equal(formatMeters(1234.6), '1 235');
+  assert.equal(formatMeters(0.4), '0');
+  assert.equal(formatMeters(87), '87');
+  assert.equal(formatMeters(Number.NaN), '0');
+  assert.ok(!/[\u202f\u00a0]/.test(formatMeters(12345)), 'pas d’espace fine');
 });
 
 test('formatCoord / scaleDenominator', () => {

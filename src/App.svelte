@@ -3,23 +3,33 @@
   import MapView from './lib/MapView.svelte';
   import Legend from './lib/Legend.svelte';
   import PanelProps from './lib/PanelProps.svelte';
+  import SettingsPanel from './lib/SettingsPanel.svelte';
   import { store } from './lib/store.svelte';
   import { LS_KEY } from './lib/store.svelte';
+  import { settings } from './lib/settings.svelte';
   import { savePlan, openPlan, saveFile, slug } from './lib/files';
   import { buildPdf } from './lib/pdf';
 
   let mapEl = $state<HTMLDivElement | null>(null);
   let busy = $state(false);
   let toast = $state('');
+  let showSettings = $state(false);
+
+  // taille de l'interface demandée dans les réglages
+  $effect(() => {
+    document.documentElement.style.zoom = String(settings.value.uiScale);
+  });
 
   // autosave + point de retour undo (debounce) : tout changement du plan est persisté localement
   $effect(() => {
     const json = JSON.stringify(store.plan);
     const t = setTimeout(() => {
-      try {
-        localStorage.setItem(LS_KEY, json);
-      } catch {
-        /* quota : l'export fichier reste la sortie de secours */
+      if (settings.value.autosave) {
+        try {
+          localStorage.setItem(LS_KEY, json);
+        } catch {
+          /* quota : l'export fichier reste la sortie de secours */
+        }
       }
       store.snapshot();
     }, 400);
@@ -80,6 +90,8 @@
   }
 
   function onKey(e: KeyboardEvent) {
+    if (showSettings) return;
+
     const mod = e.metaKey || e.ctrlKey;
     const key = e.key.toLowerCase();
     if (mod && (key === 'z' || key === 'y')) {
@@ -95,6 +107,17 @@
 
     const t = e.target as HTMLElement | null;
     if (t && /^(input|textarea|select)$/i.test(t.tagName)) return;
+
+    // raccourcis d'outils (touches simples, configurables dans les réglages)
+    if (!mod && !e.altKey && e.key.length === 1) {
+      const tool = settings.toolFor(e.key);
+      if (tool) {
+        e.preventDefault();
+        store.setTool(tool);
+        return;
+      }
+    }
+
     if (e.key === 'Escape') {
       if (store.draft.length) store.cancelDraft();
       else store.select(null);
@@ -109,7 +132,7 @@
 <svelte:window onkeydown={onKey} />
 
 <div class="app">
-  <Rail {onNew} {onOpen} {onSave} {onPdf} {busy} />
+  <Rail {onNew} {onOpen} {onSave} {onPdf} {busy} onSettings={() => (showSettings = true)} />
 
   <div class="work">
     <header class="topbar">
@@ -137,8 +160,13 @@
     <div class="stage">
       <div class="map" bind:this={mapEl}></div>
       <MapView el={mapEl} />
-      <Legend />
+      {#if settings.value.showLegend}
+        <Legend />
+      {/if}
       <PanelProps />
+      {#if showSettings}
+        <SettingsPanel onClose={() => (showSettings = false)} />
+      {/if}
       {#if busy}
         <div class="busy">Génération du PDF…</div>
       {/if}

@@ -210,6 +210,7 @@
     border: 1px solid transparent;
     border-radius: 8px;
     padding: 5px 8px;
+    width: 340px;
     min-width: 200px;
     max-width: 380px;
     flex: 0 1 auto;

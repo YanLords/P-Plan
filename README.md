@@ -18,6 +18,8 @@ Cartographie du site de tir, placement des éléments, distances de sécurité, 
 - **Export PDF A4 paysage** : page 1 = carte + cartouche (compteurs, DS max, centre, échelle,
   fond) ; page 2+ = légende détaillée numérotée (réf, calibre, DS, GPS).
 - **Fichiers** : plan `.planfeu.json` (enregistrer / ouvrir) + autosauvegarde locale.
+- **Historique** : `⌘Z` / `⇧⌘Z` (annuler / rétablir) sur les 100 dernières modifications,
+  via deux boutons dans la barre de titre.
 
 ## Démarrage
 
@@ -57,6 +59,8 @@ npm run check   # svelte-check (0 erreur attendu)
 | Touche | Action |
 | --- | --- |
 | `Entrée` | terminer le tracé (barriérage / zone) |
+| `⌘Z` / `Ctrl+Z` | annuler la dernière modification |
+| `⇧⌘Z` / `Ctrl+Y` | rétablir |
 | `Échap` | annuler le tracé en cours, sinon désélectionner |
 | `Suppr` | supprimer l'élément sélectionné |
 

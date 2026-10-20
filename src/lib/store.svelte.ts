@@ -1,5 +1,6 @@
 import type { Kind, PElement, Plan } from './elements';
 import { KIND_META } from './elements';
+import { History } from './history';
 
 export const LS_KEY = 'plan-de-feu:autosave';
 
@@ -34,6 +35,46 @@ class PlanStore {
   selection = $state<string | null>(null);
   /** sommets en cours de tracé (barriérage / zone public) */
   draft = $state<[number, number][]>([]);
+  hasUndo = $state(false);
+  hasRedo = $state(false);
+
+  #hist = new History(JSON.stringify(loadLocal()));
+
+  /** Point de retour : à appeler après stabilisation (debounce) d'une modification. */
+  snapshot() {
+    if (this.#hist.record(JSON.stringify(this.plan))) this.#syncFlags();
+  }
+
+  undo(): boolean {
+    const prev = this.#hist.undo(JSON.stringify(this.plan));
+    if (prev === null) return false;
+    this.#apply(prev);
+    return true;
+  }
+
+  redo(): boolean {
+    const next = this.#hist.redo(JSON.stringify(this.plan));
+    if (next === null) return false;
+    this.#apply(next);
+    return true;
+  }
+
+  #apply(json: string) {
+    this.plan = JSON.parse(json) as Plan;
+    this.selection = null;
+    this.draft = [];
+    this.#syncFlags();
+  }
+
+  #syncFlags() {
+    this.hasUndo = this.#hist.canUndo;
+    this.hasRedo = this.#hist.canRedo;
+  }
+
+  #resetHistory() {
+    this.#hist = new History(JSON.stringify(this.plan));
+    this.#syncFlags();
+  }
 
   get selected(): PElement | undefined {
     return this.plan.elements.find((e) => e.id === this.selection);
@@ -149,6 +190,7 @@ class PlanStore {
     this.selection = null;
     this.draft = [];
     this.tool = 'select';
+    this.#resetHistory();
   }
 
   loadPlan(p: Plan) {
@@ -156,6 +198,7 @@ class PlanStore {
     this.selection = null;
     this.draft = [];
     this.tool = 'select';
+    this.#resetHistory();
   }
 
   toJson(): string {

@@ -2,32 +2,81 @@
 
 Générateur **local** de plans de disposition de feux d'artifice — équivalent de
 [PlanFeu](https://planfeu.jacques-prevot.fr/web/) (Jacques Prevot Artifices), sans compte,
-sans serveur, sans envoi de données.
+sans serveur, sans envoi de données. Cartographie du site de tir, placement des éléments,
+distances de sécurité, export PDF A4.
 
-Cartographie du site de tir, placement des éléments, distances de sécurité, export PDF.
+![Vue générale de l'application](docs/screenshots/01-vue-generale.jpg)
 
-## Ce que fait l'application
+## Sommaire
 
-- **Carte** : fond plan (OpenStreetMap) ou satellite (Esri World Imagery), zoom/pan, échelle.
-- **Éléments** : artifice (avec cercle de distance de sécurité), barriérage, zone public,
-  **zone perso** (même tracé que la zone public, couleur et libellé personnalisables), accès
-  secours, point accueil secours, point d'eau, extincteur, échelle, marqueur libre. Les zones
-  portent leur icône en leur centre (recalculée quand un sommet bouge).
-- **Artifice générique** : un pin personnalisable (libellé, référence, calibre, distance de
-  sécurité). Le cercle de sécurité se règle à la souris : sélectionnez l'artifice, une poignée
-  orange apparaît à l'est du point, glissez-la pour ajuster la distance.
-- **Édition** : libellé, référence, calibre, distance de sécurité, notes ; sommets de
-  barriérage / zone déplaçables ; suppression (bouton ou touche `Suppr`). Le curseur de la carte
-  prend l'icône et la couleur de l'outil actif.
-- **GPS automatique** (WGS84) sur chaque élément, dans le panneau et dans le PDF.
-- **Export PDF A4 paysage** : page 1 = carte + cartouche (compteurs, DS max, centre, échelle,
-  fond) ; page 2+ = légende détaillée numérotée (réf, calibre, DS, GPS).
-- **Réglages** (roue crantée du rail) : taille de l'interface (80 → 130 %), fond de carte par
-  défaut, cercles de sécurité / légende / étiquettes affichés ou non, confirmation de
-  suppression, sauvegarde automatique, et **raccourcis clavier configurables**.
-- **Fichiers** : plan `.planfeu.json` (enregistrer / ouvrir) + autosauvegarde locale.
-- **Historique** : `⌘Z` / `⇧⌘Z` (annuler / rétablir) sur les 100 dernières modifications,
-  via deux boutons dans la barre de titre.
+- [Fonctionnalités](#fonctionnalités)
+- [Démarrage](#démarrage)
+- [Build](#build)
+- [Tests](#tests)
+- [Raccourcis](#raccourcis)
+- [Limites assumées](#limites-assumées-v01)
+- [Stack](#stack)
+
+## Fonctionnalités
+
+### Carte et positionnement
+
+Fond **plan** (OpenStreetMap) ou **satellite** (Esri World Imagery), zoom / déplacement,
+échelle métrique, et barre de recherche d'adresse (Base Adresse Nationale, puis Nominatim
+hors France) qui recentre la carte sur le lieu trouvé.
+
+![Recherche d'adresse](docs/screenshots/04-recherche-lieu.jpg)
+
+### Éléments du plan
+
+Dix outils dans le rail : artifice (avec cercle de distance de sécurité), barriérage,
+zone public, **zone perso** (même tracé que la zone public, couleur et libellé
+personnalisables), accès secours, accueil secours, point d'eau, extincteur, échelle,
+marqueur libre. Le curseur de la carte prend l'icône et la couleur de l'outil actif.
+
+Tracé des barriérages et des zones au clic (+ `Entrée` pour terminer, `Échap` pour
+annuler) ; sommets déplaçables ensuite.
+
+![Tracé d'une zone](docs/screenshots/03-trace-zone.jpg)
+
+### Édition d'un élément
+
+Libellé, référence, calibre, distance de sécurité, notes ; sélection au clic (ou depuis la
+légende) ; déplacement à la souris. Le cercle de sécurité se règle directement sur la carte :
+sélectionnez l'artifice, une poignée orange apparaît à l'est du point, glissez-la pour
+ajuster la distance. Chaque élément porte son GPS (WGS84), copiable en un clic.
+
+![Édition d'un artifice](docs/screenshots/02-edition-artifice.jpg)
+
+### Fond de carte
+
+Le même plan, sur fond plan ou satellite selon le besoin (lisibilité du terrain / photo
+aérienne).
+
+![Fond plan OpenStreetMap](docs/screenshots/05-fond-plan.jpg)
+
+### Export PDF A4 paysage
+
+Page 1 = carte + cartouche (compteurs, DS max, centre, échelle, fond) ; page 2+ = légende
+détaillée numérotée (réf, calibre, DS, aire des zones, GPS). L'image de carte est embarquée
+dans le PDF : le document reste consultable hors ligne.
+
+| Page 1 — carte et cartouche | Page 2 — légende détaillée |
+| --- | --- |
+| ![Export PDF, page 1](docs/screenshots/07-pdf-carte.jpg) | ![Export PDF, page 2](docs/screenshots/08-pdf-legende.jpg) |
+
+### Réglages
+
+Taille de l'interface (80 → 130 %), fond de carte par défaut, affichage des cercles de
+sécurité / de la légende / des étiquettes, confirmation de suppression, sauvegarde
+automatique locale, et **raccourcis clavier configurables**.
+
+![Réglages](docs/screenshots/06-reglages.jpg)
+
+### Fichiers et historique
+
+Plan `.planfeu.json` (enregistrer / ouvrir) + autosauvegarde locale ; annuler / rétablir sur
+les 100 dernières modifications (`⌘Z` / `⇧⌘Z`), via deux boutons dans la barre de titre.
 
 ## Démarrage
 
@@ -47,7 +96,7 @@ npm run tauri:build     # .app/.dmg (macOS) ou .msi/.exe (Windows)
 ## Tests
 
 ```bash
-npm test        # node --test : conversions m/px, parsing distances, aire, échelle
+npm test        # node --test : conversions m/px, parsing distances, aire, échelle, géocodage
 npm run check   # svelte-check (0 erreur attendu)
 ```
 
@@ -77,9 +126,8 @@ Toutes les touches d'outil sont modifiables dans **Réglages → Raccourcis clav
 
 ## Limites assumées (v0.1)
 
-- Pas de géocodage / recherche d'adresse : on se positionne à la souris.
-- Fond de carte = réseau requis. L'export PDF embarque l'image, donc le PDF reste
-  consultable hors ligne.
+- La recherche d'adresse interroge un service en ligne (adresse.data.gouv.fr, Nominatim) :
+  la carte et les tuiles demandent le réseau. Le PDF exporté, lui, reste consultable hors ligne.
 - Pas de gestion multi-plans dans une session, pas d'i18n.
 - Un seul fond par plan (plan ou satellite).
 

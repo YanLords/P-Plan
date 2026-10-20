@@ -15,7 +15,8 @@ Cartographie du site de tir, placement des éléments, distances de sécurité, 
   sécurité). Le cercle de sécurité se règle à la souris : sélectionnez l'artifice, une poignée
   orange apparaît à l'est du point, glissez-la pour ajuster la distance.
 - **Édition** : libellé, référence, calibre, distance de sécurité, notes ; sommets de
-  barriérage / zone déplaçables ; suppression (bouton ou touche `Suppr`).
+  barriérage / zone déplaçables ; suppression (bouton ou touche `Suppr`). Le curseur de la carte
+  prend l'icône et la couleur de l'outil actif.
 - **GPS automatique** (WGS84) sur chaque élément, dans le panneau et dans le PDF.
 - **Export PDF A4 paysage** : page 1 = carte + cartouche (compteurs, DS max, centre, échelle,
   fond) ; page 2+ = légende détaillée numérotée (réf, calibre, DS, GPS).

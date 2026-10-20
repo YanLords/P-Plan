@@ -2,6 +2,7 @@ import type { Kind, PElement, Plan } from './elements';
 import { KIND_META, isShape, isZone } from './elements';
 import { History } from './history';
 import { snapDistance } from './geo';
+import { settings } from './settings.svelte';
 
 export const LS_KEY = 'plan-de-feu:autosave';
 
@@ -12,7 +13,7 @@ export function emptyPlan(): Plan {
     date: new Date().toISOString().slice(0, 10),
     center: [46.6, 2.4],
     zoom: 5,
-    base: 'osm',
+    base: settings.value.defaultBase,
     elements: [],
   };
 }
@@ -184,6 +185,8 @@ class PlanStore {
   }
 
   remove(id: string) {
+    const el = this.plan.elements.find((e) => e.id === id);
+    if (el && settings.value.confirmDelete && !confirm(`Supprimer « ${el.label} » ?`)) return;
     this.plan.elements = this.plan.elements.filter((e) => e.id !== id);
     if (this.selection === id) this.selection = null;
   }

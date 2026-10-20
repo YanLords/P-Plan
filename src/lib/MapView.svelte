@@ -59,18 +59,41 @@
       iconAnchor: [7, 7],
     });
 
+  // ---- Sortie PDF : le plan entier est réduit à ~190 mm de large, donc tout
+  // rapetisse (pin 26 px -> 1,3 mm sur un écran large). On épaissit traits et
+  // icônes d'un facteur déduit de la largeur réelle de la carte, le temps de la capture.
+  const PRINT_REF_PX = 1188; // largeur de référence : pin imprimé ~4 mm
+  let printBoost = false;
+  let strokes: { layer: L.Path; base: number }[] = [];
+  let pinEls: HTMLElement[] = [];
+  let gain = 1;
+
+  export function setPrintBoost(on: boolean) {
+    printBoost = on;
+    gain = Math.min(4, Math.max(1, (el?.clientWidth ?? PRINT_REF_PX) / PRINT_REF_PX));
+    for (const { layer, base } of strokes) {
+      layer.setStyle({ weight: on ? Math.max(base, 1.6) * gain : base });
+    }
+    for (const pinEl of pinEls) pinEl.style.transform = on ? `scale(${gain})` : '';
+  }
+
   function draw() {
     if (!map || !overlay) return;
     overlay.clearLayers();
+    strokes = [];
+    pinEls = [];
 
     store.plan.elements.forEach((e, i) => {
       const sel = store.selection === e.id;
       const color = colorOf(e);
 
       if (e.ring && e.ring.length > 1) {
+        const baseW = isZone(e.kind) ? 2 : 3;
         const shape = isZone(e.kind)
-            ? L.polygon(e.ring, { color, weight: 2, fillColor: color, fillOpacity: 0.12 })
-            : L.polyline(e.ring, { color, weight: 3, dashArray: '7 5' });        shape.addTo(overlay!).on('click', () => store.select(e.id));
+          ? L.polygon(e.ring, { color, weight: baseW, fillColor: color, fillOpacity: 0.12 })
+          : L.polyline(e.ring, { color, weight: baseW, dashArray: '7 5' });
+        shape.addTo(overlay!).on('click', () => store.select(e.id));
+        strokes.push({ layer: shape, base: baseW });
         // barrière : longueur survolée = métrage à couvrir
         if (!isZone(e.kind) && e.ring) {
           shape.bindTooltip(`${formatMeters(ringLength(e.ring))} m`, {
@@ -106,6 +129,7 @@
             fillOpacity: 0.12,
             interactive: false,
           }).addTo(overlay!);
+          strokes.push({ layer: circle, base: 1 });
 
           let ray: L.Polyline | null = null;
           let grip: L.Marker | null = null;
@@ -161,6 +185,8 @@
         draggable: !e.ring,
         zIndexOffset: 300,
       }).addTo(overlay!);
+      const pinEl = m.getElement()?.querySelector<HTMLElement>('.pf-pin');
+      if (pinEl) pinEls.push(pinEl);
       m.bindTooltip(`${i + 1}. ${e.label}`, { direction: 'top', offset: [0, -14], opacity: 0.95 });
       if (!settings.value.showLabels) m.unbindTooltip();
       m.on('drag', (ev) => {
@@ -176,6 +202,7 @@
         store.select(e.id);
       });
     });
+    if (printBoost) setPrintBoost(true);
   }
 
   function drawDraft() {

@@ -3,6 +3,7 @@
   import L from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import { store } from './store.svelte';
+  import { settings } from './settings.svelte';
   import { KIND_META, kindIcon, colorOf, isShape, isZone, type PElement } from './elements';
   import { destinationPoint, haversine, snapDistance } from './geo';
   import { searchPlaces, type Place } from './geocode';
@@ -82,7 +83,7 @@
 
       let onPinDrag: ((ll: L.LatLng) => void) | null = null;
 
-      if (e.kind === 'artifice') {
+      if (e.kind === 'artifice' && settings.value.showRings) {
         const ds = e.ds ?? 0;
         if (ds > 0) {
           const center = L.latLng(e.lat, e.lng);
@@ -144,6 +145,7 @@
         overlay!
       );
       m.bindTooltip(`${i + 1}. ${e.label}`, { direction: 'top', offset: [0, -14], opacity: 0.95 });
+      if (!settings.value.showLabels) m.unbindTooltip();
       m.on('drag', (ev) => {
         const ll = (ev as L.LeafletEvent & { latlng?: L.LatLng }).latlng ?? m.getLatLng();
         onPinDrag?.(ll);

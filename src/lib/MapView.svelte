@@ -82,10 +82,13 @@
         }
       }
 
+      let onPinDrag: ((ll: L.LatLng) => void) | null = null;
+
       if (e.kind === 'artifice') {
         const ds = e.ds ?? 0;
         if (ds > 0) {
-          const circle = L.circle([e.lat, e.lng], {
+          const center = L.latLng(e.lat, e.lng);
+          const circle = L.circle(center, {
             radius: ds,
             color,
             weight: 1,
@@ -97,9 +100,8 @@
 
           // poignée de réglage du rayon, à l'est du point (axe carte)
           if (sel) {
-            const center: [number, number] = [e.lat, e.lng];
-            const at = destinationPoint(e.lat, e.lng, ds, 90);
-            L.polyline([center, at], {
+            const at = destinationPoint(center.lat, center.lng, ds, 90);
+            const ray = L.polyline([center, at], {
               color,
               weight: 1,
               dashArray: '3 4',
@@ -110,11 +112,31 @@
             const grip = L.marker(at, { icon: radiusIcon(), draggable: true, zIndexOffset: 700 }).addTo(
               overlay!
             );
-            grip.bindTooltip(`DS ${ds} m`, { direction: 'top', offset: [0, -10], sticky: false });
+            grip.bindTooltip(`DS ${ds} m`, { direction: 'top', offset: [0, -12], sticky: false });
+
+            // mesure en direct pendant le geste : cercle, rayon et étiquette suivent la souris
+            grip.on('dragstart', () => grip.openTooltip());
+            grip.on('drag', (ev) => {
+              const ll = (ev as L.LeafletEvent & { latlng?: L.LatLng }).latlng ?? grip.getLatLng();
+              const meters = Math.max(1, haversine([center.lat, center.lng], [ll.lat, ll.lng]));
+              circle.setRadius(meters);
+              ray.setLatLngs([center, ll]);
+              grip.setTooltipContent(`DS ${Math.round(meters)} m`);
+            });
             grip.on('dragend', () => {
               const ll = grip.getLatLng();
-              store.setRadius(e.id, haversine(center, [ll.lat, ll.lng]));
+              const meters = haversine([center.lat, center.lng], [ll.lat, ll.lng]);
+              grip.closeTooltip();
+              store.setRadius(e.id, meters);
             });
+
+            // déplacer le point déplace aussi son périmètre et sa poignée, en direct
+            onPinDrag = (ll) => {
+              const at2 = destinationPoint(ll.lat, ll.lng, ds, 90);
+              circle.setLatLng(ll);
+              ray.setLatLngs([ll, at2]);
+              grip.setLatLng(at2);
+            };
           }
         }
       }
@@ -123,6 +145,10 @@
         overlay!
       );
       m.bindTooltip(`${i + 1}. ${e.label}`, { direction: 'top', offset: [0, -14], opacity: 0.95 });
+      m.on('drag', (ev) => {
+        const ll = (ev as L.LeafletEvent & { latlng?: L.LatLng }).latlng ?? m.getLatLng();
+        onPinDrag?.(ll);
+      });
       m.on('dragend', () => {
         const ll = m.getLatLng();
         store.moveTo(e.id, [ll.lat, ll.lng]);

@@ -17,7 +17,7 @@
           <li class:sel={store.selection === e.id}>
             <button onclick={() => store.select(e.id)}>
               <span class="num">{i + 1}</span>
-              <span class="dot" style="--c:{KIND_META[e.kind].color}"></span>
+              <span class="dot" style="--c:{e.color || KIND_META[e.kind].color}"></span>
               <span class="txt">{e.label}</span>
               {#if e.kind === 'artifice' && e.ds != null}
                 <span class="ds">{e.ds} m</span>

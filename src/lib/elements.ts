@@ -3,6 +3,7 @@
 export type Kind =
   | 'artifice'
   | 'barrierage'
+  | 'sortie'
   | 'zone_public'
   | 'zone_perso'
   | 'acces_secours'
@@ -48,6 +49,7 @@ export const KIND_META: Record<
 > = {
   artifice: { label: 'Artifice', color: '#FCA04B', shape: 'point' },
   barrierage: { label: 'Barriérage', color: '#FF9500', shape: 'line' },
+  sortie: { label: 'Voie de sortie', color: '#E03131', shape: 'line' },
   zone_public: { label: 'Zone public', color: '#2F80ED', shape: 'zone' },
   zone_perso: { label: 'Zone perso', color: '#8E5CF7', shape: 'zone' },
   acces_secours: { label: 'Accès secours', color: '#34C759', shape: 'point' },
@@ -65,6 +67,7 @@ export const TOOL_ORDER: Kind[] = [
   'zone_public',
   'zone_perso',
   'barrierage',
+  'sortie',
   'acces_secours',
   'accueil_secours',
   'point_eau',
@@ -78,6 +81,7 @@ const PATHS: Record<Kind, string> = {
   artifice:
     '<path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.2 5.2l2.1 2.1M16.7 16.7l2.1 2.1M18.8 5.2l-2.1 2.1M7.3 16.7l-2.1 2.1"/><circle cx="12" cy="12" r="3.1"/>',
   barrierage: '<path d="M3 8h18M3 16h18M7 8v8M12 8v8M17 8v8"/>',
+  sortie: '<path d="M3 12h13"/><path d="m12 6 6 6-6 6"/>',
   zone_public:
     '<circle cx="9" cy="8" r="2.6"/><path d="M3.6 19.5a5.4 5.4 0 0 1 10.8 0"/><circle cx="17" cy="9.2" r="2"/><path d="M16.2 19.5a4.6 4.6 0 0 1 4.4-4.4"/>',
   zone_perso:

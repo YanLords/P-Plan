@@ -21,6 +21,7 @@ test('raccourcis par défaut : ceux de la spécification', () => {
     zone_public: 'p',
     zone_perso: 'z',
     barrierage: 'b',
+    sortie: 'o',
     acces_secours: 's',
     accueil_secours: 'q',
     point_eau: 'e',

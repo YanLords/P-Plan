@@ -82,7 +82,8 @@ textarea {
 /* ---- Marqueurs Leaflet (HTML injecté : styles non scopés obligatoires) ---- */
 .pf-pin-wrap,
 .pf-handle-wrap,
-.pf-radius-wrap {
+.pf-radius-wrap,
+.pf-arrow-wrap {
   background: none;
   border: none;
 }
@@ -107,6 +108,14 @@ textarea {
   box-shadow:
     0 0 0 3px rgba(252, 160, 75, 0.35),
     0 1px 5px rgba(0, 0, 0, 0.3);
+}
+
+.pf-arrow {
+  color: var(--c);
+  display: grid;
+  place-items: center;
+  transform-origin: center;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
 }
 
 .pf-handle {

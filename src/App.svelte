@@ -76,7 +76,8 @@
         mapEl,
         mapEl?.clientWidth ?? 900,
         (on) => mapView?.setPrintBoost(on),
-        (aspect, on) => mapView?.setPrintFit(aspect, on) ?? Promise.resolve()
+        (aspect, on) => mapView?.setPrintFit(aspect, on) ?? Promise.resolve(),
+        settings.value.company
       );
       const name = `${slug(store.plan.titre)}-${store.plan.date}.pdf`;
       const path = await saveFile(name, bytes, [{ name: 'PDF', extensions: ['pdf'] }]);

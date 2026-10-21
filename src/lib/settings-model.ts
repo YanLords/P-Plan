@@ -2,6 +2,80 @@ import type { Kind } from './elements';
 
 export type ToolKey = 'select' | Kind;
 
+/** Coordonnées de l'entreprise, imprimées dans le cartouche du PDF. */
+export interface Company {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  website: string;
+  /** logo en data URL (PNG/JPEG), '' si absent */
+  logo: string;
+  /** ajouter le QR code de contact (vCard) au cartouche */
+  qr: boolean;
+}
+
+export const EMPTY_COMPANY: Company = {
+  name: '',
+  address: '',
+  phone: '',
+  email: '',
+  website: '',
+  logo: '',
+  qr: true,
+};
+
+/** Limite du logo stocké (localStorage) : ~300 Ko en base64. */
+export const MAX_LOGO_CHARS = 400_000;
+
+export function isImageDataUrl(value: unknown): boolean {
+  return (
+    typeof value === 'string' &&
+    value.length <= MAX_LOGO_CHARS &&
+    /^data:image\/(png|jpe?g);base64,[A-Za-z0-9+/=]+$/.test(value)
+  );
+}
+
+function cleanText(value: unknown, max: number): string {
+  return String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
+}
+
+export function sanitizeCompany(raw: unknown): Company {
+  const src = (raw && typeof raw === 'object' ? raw : {}) as Partial<Company>;
+  return {
+    name: cleanText(src.name, 80),
+    address: cleanText(src.address, 120),
+    phone: cleanText(src.phone, 40),
+    email: cleanText(src.email, 80),
+    website: cleanText(src.website, 80),
+    logo: isImageDataUrl(src.logo) ? String(src.logo) : '',
+    qr: typeof src.qr === 'boolean' ? src.qr : EMPTY_COMPANY.qr,
+  };
+}
+
+/** Rien à imprimer : ni identité, ni coordonnées, ni logo. */
+export function companyIsEmpty(c: Company): boolean {
+  return !c.name && !c.address && !c.phone && !c.email && !c.website && !c.logo;
+}
+
+/** vCard 3.0 : contenu du QR code de contact. */
+export function vcardOf(c: Company): string {
+  const esc = (v: string) => v.replace(/\\/g, '\\\\').replace(/([;,\n])/g, (m) => (m === '\n' ? '\\n' : `\\${m}`));
+  // version compacte : chaque champ en moins réduit la taille des modules du QR imprimé
+  const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
+  if (c.name) lines.push(`FN:${esc(c.name)}`);
+  if (c.phone) lines.push(`TEL:${esc(c.phone)}`);
+  if (c.email) lines.push(`EMAIL:${esc(c.email)}`);
+  if (c.website) lines.push(`URL:${esc(c.website)}`);
+  if (c.address) lines.push(`ADR:;;${esc(c.address)};;;;`);
+  lines.push('END:VCARD');
+  return lines.join('\n');
+}
+
+
 /** Réglages persistés (modèle pur : testable sans DOM). */
 export interface ToolSettings {
   version: 1;
@@ -14,6 +88,7 @@ export interface ToolSettings {
   confirmDelete: boolean;
   autosave: boolean;
   shortcuts: Record<ToolKey, string>;
+  company: Company;
 }
 
 export const UI_SCALE_MIN = 0.8;
@@ -75,6 +150,7 @@ export const DEFAULT_SETTINGS: ToolSettings = {
   confirmDelete: true,
   autosave: true,
   shortcuts: { ...DEFAULT_SHORTCUTS },
+  company: { ...EMPTY_COMPANY },
 };
 
 export function clampScale(value: unknown): number {
@@ -136,5 +212,6 @@ export function sanitizeSettings(raw: unknown): ToolSettings {
     confirmDelete: bool(src.confirmDelete, DEFAULT_SETTINGS.confirmDelete),
     autosave: bool(src.autosave, DEFAULT_SETTINGS.autosave),
     shortcuts,
+    company: sanitizeCompany(src.company),
   };
 }

@@ -300,12 +300,12 @@ function drawCartouche(
     doc.text(fitText(doc, company.name || '—', textW), textX, sat(5.4));
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(5 * fs);
-    doc.setTextColor(...MUTED);
+    doc.setFontSize(6.6 * fs);
+    doc.setTextColor(...INK);
     [company.address, company.phone, company.email, company.website]
       .filter(Boolean)
       .slice(0, 4)
-      .forEach((line, i) => doc.text(fitText(doc, line, textW), textX, sat(9 + i * 2.9)));
+      .forEach((line, i) => doc.text(fitText(doc, line, textW), textX, sat(9.2 + i * 3.2)));
 
     if (qr) {
       doc.addImage(qr, 'PNG', x + w - 3 - qrSize, sat(1.4), qrSize, qrSize, undefined, 'FAST');
@@ -326,22 +326,26 @@ function drawCartouche(
   doc.setTextColor(...MUTED);
   doc.text('Spectacle pyrotechnique', cx, at(11.4), { align: 'center' });
 
+  const city = cityOf(plan.site);
+  // le libellé d'adresse commence souvent par la commune : on ne l'imprime pas deux fois
+  const rest = plan.site.startsWith(city) ? plan.site.slice(city.length).trim() : plan.site;
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11.5 * fs);
   doc.setTextColor(...INK);
-  doc.text(fitText(doc, cityOf(plan.site), w - 8), cx, at(17.4), { align: 'center' });
+  doc.text(fitText(doc, city || 'Lieu non renseigné', w - 8), cx, at(17.4), { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6 * fs);
+  doc.setFontSize(6.6 * fs);
   doc.setTextColor(...MUTED);
-  doc.text(fitText(doc, plan.site || 'Lieu non renseigné', w - 8), cx, at(21.2), { align: 'center' });
+  if (rest && rest !== city) doc.text(fitText(doc, rest, w - 8), cx, at(21.2), { align: 'center' });
 
   doc.setFontSize(6.4 * fs);
   doc.setTextColor(...INK);
   doc.text(
     new Date(`${plan.date}T12:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }),
     cx,
-    at(25),
+    at(rest && rest !== city ? 25 : 22.6),
     { align: 'center' }
   );
   boxRule(doc, at(27.4));

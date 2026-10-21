@@ -1,5 +1,7 @@
 <script lang="ts">
   import { settings } from './settings.svelte';
+  import { logoDataUrl } from './media';
+  import { MAX_LOGO_CHARS, companyIsEmpty, vcardOf } from './settings-model';
   import {
     SHORTCUT_LABELS,
     SHORTCUT_ORDER,
@@ -18,6 +20,26 @@
     e.preventDefault();
     if (e.key === 'Backspace' || e.key === 'Delete') settings.setShortcut(tool, '');
     else settings.setShortcut(tool, e.key);
+  }
+
+  let logoError = $state('');
+
+  async function pickLogo(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    logoError = '';
+    try {
+      const dataUrl = await logoDataUrl(file);
+      if (dataUrl.length > MAX_LOGO_CHARS) {
+        logoError = 'Image trop lourde, choisissez un logo plus simple.';
+        return;
+      }
+      settings.setCompany({ logo: dataUrl });
+    } catch {
+      logoError = 'Format d’image non reconnu (PNG, JPEG, WebP).';
+    }
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -152,6 +174,98 @@
       </section>
 
       <section>
+        <h3>Entreprise</h3>
+        <p class="note">Logo et coordonnées imprimés dans le cartouche du PDF, avec un QR code de contact.</p>
+
+        <div class="logo-row">
+          {#if settings.value.company.logo}
+            <img class="logo-preview" src={settings.value.company.logo} alt="Logo de l’entreprise" />
+          {:else}
+            <div class="logo-preview empty">Logo</div>
+          {/if}
+          <div class="logo-actions">
+            <label class="file">
+              Choisir une image
+              <input type="file" accept="image/*" onchange={pickLogo} />
+            </label>
+            {#if settings.value.company.logo}
+              <button class="link" onclick={() => settings.setCompany({ logo: '' })}>Retirer</button>
+            {/if}
+          </div>
+        </div>
+        {#if logoError}<p class="error">{logoError}</p>{/if}
+
+        <label class="field">
+          <span>Nom de l’entreprise</span>
+          <input
+            type="text"
+            value={settings.value.company.name}
+            oninput={(e) => settings.setCompany({ name: e.currentTarget.value })}
+            placeholder="Jacques Couturier Organisation"
+          />
+        </label>
+
+        <label class="field">
+          <span>Adresse</span>
+          <input
+            type="text"
+            value={settings.value.company.address}
+            oninput={(e) => settings.setCompany({ address: e.currentTarget.value })}
+            placeholder="12 rue des Tilleuls, 83110 Rives de Lyon"
+          />
+        </label>
+
+        <div class="duo">
+          <label class="field">
+            <span>Téléphone</span>
+            <input
+              type="tel"
+              value={settings.value.company.phone}
+              oninput={(e) => settings.setCompany({ phone: e.currentTarget.value })}
+              placeholder="06 12 34 56 78"
+            />
+          </label>
+          <label class="field">
+            <span>E-mail</span>
+            <input
+              type="email"
+              value={settings.value.company.email}
+              oninput={(e) => settings.setCompany({ email: e.currentTarget.value })}
+              placeholder="contact@exemple.fr"
+            />
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Site web</span>
+          <input
+            type="url"
+            value={settings.value.company.website}
+            oninput={(e) => settings.setCompany({ website: e.currentTarget.value })}
+            placeholder="https://exemple.fr"
+          />
+        </label>
+
+        <div class="row">
+          <span>QR code de contact dans le PDF</span>
+          <button
+            class="switch"
+            aria-label="QR code de contact dans le PDF"
+            role="switch"
+            aria-checked={settings.value.company.qr}
+            class:on={settings.value.company.qr}
+            onclick={() => settings.setCompany({ qr: !settings.value.company.qr })}
+          >
+            <span></span>
+          </button>
+        </div>
+
+        {#if settings.value.company.qr && !companyIsEmpty(settings.value.company)}
+          <p class="note mono">{vcardOf(settings.value.company).split('\n').length} lignes vCard · QR généré à l’export</p>
+        {/if}
+      </section>
+
+      <section>
         <h3>Raccourcis clavier</h3>
         <p class="note">Cliquez un champ puis appuyez sur une touche. <kbd>Retour arrière</kbd> pour désactiver.</p>
         <ul class="keys">
@@ -253,6 +367,104 @@
     letter-spacing: 0.4px;
     color: var(--text-muted);
     font-weight: 600;
+  }
+
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 10px 0 12px;
+  }
+
+  .logo-preview {
+    width: 58px;
+    height: 58px;
+    object-fit: contain;
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    background: #fff;
+    padding: 4px;
+  }
+
+  .logo-preview.empty {
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+    color: var(--text-muted);
+    border-style: dashed;
+  }
+
+  .logo-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  .file {
+    font-size: 12px;
+    color: var(--accent-text, #a35c14);
+    border: 1px solid var(--border-card);
+    border-radius: 7px;
+    padding: 5px 10px;
+    cursor: pointer;
+    background: #fff;
+  }
+
+  .file input {
+    display: none;
+  }
+
+  .link {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    border: 0;
+    background: none;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .field span {
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+
+  .field input {
+    border: 1px solid var(--border-card);
+    border-radius: 7px;
+    padding: 6px 9px;
+    font-size: 12.5px;
+    color: var(--text-primary);
+    background: #fff;
+    outline: none;
+  }
+
+  .field input:focus {
+    border-color: var(--accent);
+  }
+
+  .duo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .error {
+    font-size: 11.5px;
+    color: #c0392b;
+    margin: 0 0 8px;
+  }
+
+  .mono {
+    font-variant-numeric: tabular-nums;
   }
 
   .row {

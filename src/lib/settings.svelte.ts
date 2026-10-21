@@ -1,7 +1,8 @@
-import type { ToolKey, ToolSettings } from './settings-model';
+import type { Company, ToolKey, ToolSettings } from './settings-model';
 import {
   DEFAULT_SETTINGS,
   assignShortcut,
+  sanitizeCompany,
   sanitizeSettings,
   toolForShortcut,
 } from './settings-model';
@@ -37,12 +38,19 @@ class SettingsStore {
     this.#persist();
   }
 
+  setCompany(patch: Partial<Company>) {
+    this.value.company = sanitizeCompany({ ...this.value.company, ...patch });
+    this.#persist();
+  }
+
   toolFor(key: string): ToolKey | null {
     return toolForShortcut(this.value.shortcuts, key);
   }
 
   reset() {
-    this.value = sanitizeSettings(DEFAULT_SETTINGS);
+    // les coordonnées de l'entreprise sont une identité, pas un réglage d'affichage
+    const company = this.value.company;
+    this.value = { ...sanitizeSettings(DEFAULT_SETTINGS), company };
     this.#persist();
   }
 }

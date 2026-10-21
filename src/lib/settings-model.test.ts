@@ -8,6 +8,9 @@ import {
   clampScale,
   normalizeKey,
   sanitizeSettings,
+  companyIsEmpty,
+  sanitizeCompany,
+  vcardOf,
   toolForShortcut,
 } from './settings-model.ts';
 
@@ -82,4 +85,56 @@ test('sanitizeSettings : données corrompues -> défauts, champs valides conserv
   assert.equal(custom.shortcuts.artifice, 'k');
   assert.equal(custom.shortcuts.marqueur, 'm', 'touche invalide -> défaut');
   assert.equal(custom.shortcuts.echelle, 'x');
+});
+
+const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+test('sanitizeCompany : nettoie, valide le logo, garde le QR', () => {
+  const c = sanitizeCompany({
+    name: '  Jacques   Couturier  ',
+    address: '12 rue des Tilleuls',
+    phone: ' 06 12 34 56 78 ',
+    email: 'contact@exemple.fr',
+    website: 'https://exemple.fr',
+    logo: PNG,
+    qr: false,
+  });
+  assert.equal(c.name, 'Jacques Couturier');
+  assert.equal(c.phone, '06 12 34 56 78');
+  assert.equal(c.logo, PNG);
+  assert.equal(c.qr, false);
+
+  // logo invalide ou trop lourd -> ignoré
+  assert.equal(sanitizeCompany({ logo: 'https://exemple.fr/logo.png' }).logo, '');
+  assert.equal(sanitizeCompany({ logo: 'data:text/plain;base64,AAAA' }).logo, '');
+  assert.equal(sanitizeCompany({ logo: 'data:image/png;base64,' + 'A'.repeat(400_001) }).logo, '');
+  // champ absent -> QR activé par défaut
+  assert.equal(sanitizeCompany({}).qr, true);
+});
+
+test('companyIsEmpty : vrai seulement si rien à imprimer', () => {
+  assert.equal(companyIsEmpty(sanitizeCompany({})), true);
+  assert.equal(companyIsEmpty(sanitizeCompany({ logo: PNG })), false);
+  assert.equal(companyIsEmpty(sanitizeCompany({ phone: '06' })), false);
+});
+
+test('vcardOf : carte de contact complète et échappée', () => {
+  const card = vcardOf(
+    sanitizeCompany({
+      name: 'Artifeu; Lyon',
+      address: '12 rue des Tilleuls, 83110',
+      phone: '+33 6 12 34 56 78',
+      email: 'contact@exemple.fr',
+      website: 'https://exemple.fr',
+    })
+  );
+  assert.ok(card.startsWith('BEGIN:VCARD\nVERSION:3.0'));
+  assert.ok(card.trim().endsWith('END:VCARD'));
+  assert.ok(card.includes('FN:Artifeu\\; Lyon'), 'point-virgule échappé');
+  assert.ok(card.includes('TEL:+33 6 12 34 56 78'));
+  assert.ok(card.includes('EMAIL:contact@exemple.fr'));
+  assert.ok(card.includes('ADR:;;12 rue des Tilleuls\\, 83110;;;;'), 'virgule échappée');
+
+  const mini = vcardOf(sanitizeCompany({ name: 'Artifeu' }));
+  assert.ok(!mini.includes('TEL'), 'pas de champ vide');
 });

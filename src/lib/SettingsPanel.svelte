@@ -201,7 +201,6 @@
             type="text"
             value={settings.value.company.name}
             oninput={(e) => settings.setCompany({ name: e.currentTarget.value })}
-            placeholder="Jacques Couturier Organisation"
           />
         </label>
 
@@ -211,7 +210,6 @@
             type="text"
             value={settings.value.company.address}
             oninput={(e) => settings.setCompany({ address: e.currentTarget.value })}
-            placeholder="12 rue des Tilleuls, 83110 Rives de Lyon"
           />
         </label>
 
@@ -222,7 +220,6 @@
               type="tel"
               value={settings.value.company.phone}
               oninput={(e) => settings.setCompany({ phone: e.currentTarget.value })}
-              placeholder="06 12 34 56 78"
             />
           </label>
           <label class="field">
@@ -231,7 +228,6 @@
               type="email"
               value={settings.value.company.email}
               oninput={(e) => settings.setCompany({ email: e.currentTarget.value })}
-              placeholder="contact@exemple.fr"
             />
           </label>
         </div>
@@ -242,7 +238,6 @@
             type="url"
             value={settings.value.company.website}
             oninput={(e) => settings.setCompany({ website: e.currentTarget.value })}
-            placeholder="https://exemple.fr"
           />
         </label>
 

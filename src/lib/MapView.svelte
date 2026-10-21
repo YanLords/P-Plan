@@ -68,13 +68,62 @@
   let pinEls: HTMLElement[] = [];
   let gain = 1;
 
+  let printPixels = 1;
+  let savedSize: { w: string; h: string } | null = null;
+
+  /** Capture PDF : élargit la carte au format du plan (même échelle, plus de terrain). */
+  export async function setPrintFit(aspect: number, on: boolean): Promise<number | void> {
+    const node = el;
+    const leaflet = map;
+    if (!node || !leaflet) return;
+
+    if (on) {
+      if (!savedSize) savedSize = { w: node.style.width, h: node.style.height };
+      const h = node.clientHeight || 1;
+      // ponytail: budget de 10 Mpx CSS pour la capture (au-delà, la carte garde
+      // son format et se cale avec des marges plutôt que de saturer la mémoire)
+      const maxW = Math.floor(10_000_000 / h);
+      node.style.width = `${Math.min(maxW, Math.round(h * aspect))}px`;
+      node.style.height = `${h}px`;
+    } else if (savedSize) {
+      node.style.width = savedSize.w;
+      node.style.height = savedSize.h;
+      savedSize = null;
+    }
+
+    leaflet.invalidateSize({ animate: false });
+    await new Promise<void>((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        leaflet.off('idle', finish);
+        resolve();
+      };
+      leaflet.once('idle', finish);
+      setTimeout(finish, 900);
+    });
+
+    if (!on) return;
+    printPixels = node.clientWidth || printPixels;
+    return printPixels;
+  }
+
   export function setPrintBoost(on: boolean) {
     printBoost = on;
-    gain = Math.min(4, Math.max(1, (el?.clientWidth ?? PRINT_REF_PX) / PRINT_REF_PX));
+    gain = Math.min(4, Math.max(1, (el?.clientWidth ?? printPixels) / PRINT_REF_PX));
     for (const { layer, base } of strokes) {
       layer.setStyle({ weight: on ? Math.max(base, 1.6) * gain : base });
     }
-    for (const pinEl of pinEls) pinEl.style.transform = on ? `scale(${gain})` : '';
+    for (const pinEl of pinEls) {
+      pinEl.style.transform = on ? `scale(${gain})` : '';
+      // l'ombre portée n'est pas transformée par la capture -> artefact gris à l'impression
+      pinEl.style.boxShadow = on ? 'none' : '';
+    }
+    // les contrôles Leaflet ne font pas partie du plan
+    for (const ctrl of el?.querySelectorAll<HTMLElement>('.leaflet-control-zoom') ?? []) {
+      ctrl.style.display = on ? 'none' : '';
+    }
   }
 
   function draw() {

@@ -10,6 +10,7 @@ export type Kind =
   | 'point_eau'
   | 'extincteur'
   | 'echelle'
+  | 'surveillance'
   | 'marqueur';
 
 export interface PElement {
@@ -54,6 +55,7 @@ export const KIND_META: Record<
   point_eau: { label: "Point d'eau", color: '#0A84FF', shape: 'point' },
   extincteur: { label: 'Extincteur', color: '#FF3B30', shape: 'point' },
   echelle: { label: 'Échelle', color: '#8E8E93', shape: 'point' },
+  surveillance: { label: 'Agent de surveillance', color: '#B5179E', shape: 'point' },
   marqueur: { label: 'Marqueur', color: '#1A1A1A', shape: 'point' },
 };
 
@@ -68,6 +70,7 @@ export const TOOL_ORDER: Kind[] = [
   'point_eau',
   'extincteur',
   'echelle',
+  'surveillance',
   'marqueur',
 ];
 
@@ -85,6 +88,8 @@ const PATHS: Record<Kind, string> = {
   extincteur:
     '<path d="M8.2 8h5.8a2 2 0 0 1 2 2v9.2a1.8 1.8 0 0 1-1.8 1.8H8a1.8 1.8 0 0 1-1.8-1.8V10a2 2 0 0 1 2-2z"/><path d="M9 8V5.2h6"/><path d="M6.2 8V6.2h6.6"/><path d="M16 11.4h2.6"/>',
   echelle: '<path d="M7 2.5v19M17 2.5v19M7 6.5h10M7 11h10M7 15.5h10"/>',
+  surveillance:
+    '<path d="M2.2 12s3.7-7 9.8-7 9.8 7 9.8 7-3.7 7-9.8 7-9.8-7-9.8-7z"/><circle cx="12" cy="12" r="2.9"/>',
   marqueur:
     '<path d="M20 10.2c0 6-8 11.8-8 11.8S4 16.2 4 10.2a8 8 0 0 1 16 0z"/><circle cx="12" cy="10.2" r="2.6"/>',
 };

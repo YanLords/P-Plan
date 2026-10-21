@@ -194,6 +194,8 @@
             h.on('dragend', () => {
               const ll = h.getLatLng();
               store.moveVertex(e.id, idx, [ll.lat, ll.lng]);
+              // l'icône (centre de zone ou premier point du tracé) doit suivre le sommet
+              draw();
             });
           });
         }

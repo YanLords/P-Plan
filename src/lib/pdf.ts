@@ -1,5 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
+import QRCode from 'qrcode';
+import { companyIsEmpty, vcardOf, type Company } from './settings-model';
 import type { Plan, PElement, Kind } from './elements';
 import { KIND_META, colorOf, kindIconSvg, isZone } from './elements';
 import {
@@ -94,6 +96,27 @@ async function iconPng(kind: Kind, color: string): Promise<string | null> {
     return png;
   } catch {
     return null; // PDF sans icône plutôt qu'un export qui échoue
+  }
+}
+
+/** Dimensions d'une image (logo) en pixels. */
+async function imageSize(src: string): Promise<{ w: number; h: number } | null> {
+  try {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    return { w: img.width, h: img.height };
+  } catch {
+    return null;
+  }
+}
+
+/** QR code de contact (vCard) en PNG, ou null si la génération échoue. */
+async function qrPng(text: string): Promise<string | null> {
+  try {
+    return await QRCode.toDataURL(text, { margin: 0, width: 320, errorCorrectionLevel: 'M' });
+  } catch {
+    return null;
   }
 }
 
@@ -227,19 +250,63 @@ function cityOf(site: string): string {
 }
 
 /** Cartouche « schéma de mise en œuvre » compact, sous la carte. */
-function drawCartouche(doc: jsPDF, plan: Plan, metersPerMm: number, y0: number, h: number): void {
+function drawCartouche(
+  doc: jsPDF,
+  plan: Plan,
+  metersPerMm: number,
+  y0: number,
+  h: number,
+  company: Company,
+  qr: string | null,
+  logo: { w: number; h: number } | null
+): void {
   const x = CART.x;
   const w = CART.w;
   const cx = x + w / 2;
+  const showCompany = !companyIsEmpty(company) || !!qr;
+  const S = showCompany ? 22 : 0; // hauteur du bloc entreprise (logo + contact + QR)
   // le cartouche se comprime quand la carte prend de la place (pas de troncature du plan)
-  const DESIGN_H = 47.4; // dernière ligne du dessin d'origine
+  const DESIGN_H = 47.4 + S; // dernière ligne du dessin
   const k = Math.min(1, (h - 3.5) / DESIGN_H);
   const fs = Math.max(0.8, k);
-  const at = (v: number) => y0 + 2 + v * k;
+  // `sat` = coordonnées du bloc entreprise (avant le décalage S), `at` = contenu courant
+  const sat = (v: number) => y0 + 2 + v * k;
+  const at = (v: number) => y0 + 2 + (v + S) * k;
+  const unit = (mm: number) => mm * k;
 
   doc.setDrawColor(...INK);
   doc.setLineWidth(0.3);
   doc.rect(x, y0, w, h);
+
+  if (showCompany) {
+    // 0. identité : logo à gauche, coordonnées au centre, QR de contact à droite
+    const box = unit(13);
+    if (company.logo && logo) {
+      const ratio = Math.min(box / logo.w, box / logo.h);
+      doc.addImage(company.logo, 'PNG', x + 3, sat(1.4), logo.w * ratio, logo.h * ratio, undefined, 'FAST');
+    }
+    const qrSize = qr ? unit(19) : 0;
+    const textX = x + 3 + box + 3;
+    const textW = x + w - 3 - (qr ? qrSize + 3 : 0) - textX;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7 * fs);
+    doc.setTextColor(...INK);
+    doc.text(fitText(doc, company.name || '—', textW), textX, sat(5.4));
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5 * fs);
+    doc.setTextColor(...MUTED);
+    [company.address, company.phone, company.email, company.website]
+      .filter(Boolean)
+      .slice(0, 4)
+      .forEach((line, i) => doc.text(fitText(doc, line, textW), textX, sat(9 + i * 2.9)));
+
+    if (qr) {
+      doc.addImage(qr, 'PNG', x + w - 3 - qrSize, sat(1.4), qrSize, qrSize, undefined, 'FAST');
+    }
+    boxRule(doc, sat(21));
+  }
 
   // titre
   doc.setFont('helvetica', 'bold');
@@ -333,11 +400,15 @@ export async function buildPdf(
   mapEl: HTMLElement | null,
   mapWidthPx: number,
   boost?: (on: boolean) => void,
-  fit?: PdfFit
+  fit?: PdfFit,
+  company: Company = { name: '', address: '', phone: '', email: '', website: '', logo: '', qr: false }
 ): Promise<Uint8Array> {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const [lat] = plan.center;
-  const target = MAP.w / MAP.maxH; // format du plan sur la page
+  const showCompany = !companyIsEmpty(company);
+  // le bloc entreprise prend de la hauteur : la carte cède la place correspondante
+  const maxH = showCompany ? MAP.maxH - 22 : MAP.maxH;
+  const target = MAP.w / maxH; // format du plan sur la page
 
   drawFrame(doc);
 
@@ -362,7 +433,7 @@ export async function buildPdf(
 
   // « contain » : l'image remplit la case sans jamais être déformée
   const hpx = mapEl?.clientHeight ?? Math.round(mapWidthPx / target);
-  const scale = Math.min(MAP.w / widthPx, MAP.maxH / hpx);
+  const scale = Math.min(MAP.w / widthPx, maxH / hpx);
   const imgW = widthPx * scale;
   const imgH = hpx * scale;
   const imgX = MAP.x + (MAP.w - imgW) / 2;
@@ -384,7 +455,9 @@ export async function buildPdf(
   // ---- Bande basse : cartouche à gauche, légende à droite
   const bandY = MAP.y + imgH + 5;
   const bandH = LEG.bottom - bandY;
-  drawCartouche(doc, plan, metersPerMm, bandY, bandH);
+  const qr = company.qr && showCompany ? await qrPng(vcardOf(company)) : null;
+  const logo = company.logo ? await imageSize(company.logo) : null;
+  drawCartouche(doc, plan, metersPerMm, bandY, bandH, company, qr, logo);
 
   const rows = legendRowsFor(plan);
   if (rows.length) {

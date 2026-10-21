@@ -100,6 +100,9 @@ textarea {
   border: 1.5px solid var(--c);
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.28);
   cursor: grab;
+  /* --sc : facteur d'impression PDF (1 par défaut) */
+  transform: scale(var(--sc, 1));
+  transform-origin: center;
 }
 
 .pf-pin.sel {
@@ -114,6 +117,7 @@ textarea {
   color: var(--c);
   display: grid;
   place-items: center;
+  transform: rotate(var(--rot, 0deg)) scale(var(--sc, 1));
   transform-origin: center;
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
 }

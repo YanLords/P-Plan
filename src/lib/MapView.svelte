@@ -58,7 +58,7 @@
     }
     return L.divIcon({
       className: 'pf-arrow-wrap',
-      html: `<div class="pf-arrow" style="--c:${color};transform:rotate(${deg}deg)"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M21.5 12 3 2.6l4.8 9.4L3 21.4z" fill="currentColor"/></svg></div>`,
+      html: `<div class="pf-arrow" style="--c:${color};--rot:${deg}deg"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M21.5 12 3 2.6l4.8 9.4L3 21.4z" fill="currentColor"/></svg></div>`,
       iconSize: [28, 28],
       iconAnchor: [14, 14],
     });
@@ -78,10 +78,10 @@
   // ---- Sortie PDF : le plan entier est réduit à ~190 mm de large, donc tout
   // rapetisse (pin 26 px -> 1,3 mm sur un écran large). On épaissit traits et
   // icônes d'un facteur déduit de la largeur réelle de la carte, le temps de la capture.
-  const PRINT_REF_PX = 1188; // largeur de référence : pin imprimé ~4 mm
+  const PIN_CSS_PX = 26; // diamètre écran d'une icône
+  const PRINT_PIN_MM = 4.2; // diamètre voulu sur le papier
   let printBoost = false;
   let strokes: { layer: L.Path; base: number }[] = [];
-  let pinEls: HTMLElement[] = [];
   let gain = 1;
 
   let printPixels = 1;
@@ -125,16 +125,26 @@
     return printPixels;
   }
 
-  export function setPrintBoost(on: boolean) {
+  export function setPrintBoost(on: boolean, mapWidthMm = 281) {
     printBoost = on;
-    gain = Math.min(4, Math.max(1, (el?.clientWidth ?? printPixels) / PRINT_REF_PX));
+    // l'icône doit mesurer PRINT_PIN_MM sur le papier, quelle que soit la largeur
+    // de la capture : gain = (mm voulus / largeur imprimée) / (taille écran)
+    const width = el?.clientWidth ?? printPixels;
+    gain = Math.min(6, Math.max(0.3, (width * PRINT_PIN_MM) / (PIN_CSS_PX * mapWidthMm)));
+
     for (const { layer, base } of strokes) {
       layer.setStyle({ weight: on ? Math.max(base, 1.6) * gain : base });
     }
-    for (const pinEl of pinEls) {
-      pinEl.style.transform = on ? `scale(${gain})` : '';
-      // l'ombre portée n'est pas transformée par la capture -> artefact gris à l'impression
-      pinEl.style.boxShadow = on ? 'none' : '';
+    // icônes et pointes de flèche : même facteur, via une variable CSS
+    for (const node of el?.querySelectorAll<HTMLElement>('.pf-pin, .pf-arrow') ?? []) {
+      if (on) {
+        node.style.setProperty('--sc', String(gain));
+        // l'ombre portée n'est pas transformée par la capture -> artefact gris à l'impression
+        node.style.boxShadow = 'none';
+      } else {
+        node.style.removeProperty('--sc');
+        node.style.boxShadow = '';
+      }
     }
     // les contrôles Leaflet ne font pas partie du plan
     for (const ctrl of el?.querySelectorAll<HTMLElement>('.leaflet-control-zoom') ?? []) {
@@ -146,7 +156,6 @@
     if (!map || !overlay) return;
     overlay.clearLayers();
     strokes = [];
-    pinEls = [];
 
     store.plan.elements.forEach((e, i) => {
       const sel = store.selection === e.id;
@@ -261,8 +270,6 @@
         draggable: !e.ring,
         zIndexOffset: 300,
       }).addTo(overlay!);
-      const pinEl = m.getElement()?.querySelector<HTMLElement>('.pf-pin');
-      if (pinEl) pinEls.push(pinEl);
       m.bindTooltip(`${i + 1}. ${e.label}`, { direction: 'top', offset: [0, -14], opacity: 0.95 });
       if (!settings.value.showLabels) m.unbindTooltip();
       m.on('drag', (ev) => {

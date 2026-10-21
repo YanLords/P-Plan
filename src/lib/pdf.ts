@@ -404,7 +404,7 @@ export async function buildPdf(
   plan: Plan,
   mapEl: HTMLElement | null,
   mapWidthPx: number,
-  boost?: (on: boolean) => void,
+  boost?: (on: boolean, mapWidthMm?: number) => void,
   fit?: PdfFit,
   company: Company = { name: '', address: '', phone: '', email: '', website: '', logo: '', qr: false }
 ): Promise<Uint8Array> {
@@ -424,7 +424,7 @@ export async function buildPdf(
   if (mapEl) {
     const fitted = await fit?.(target, true);
     if (typeof fitted === 'number' && fitted > 0) widthPx = fitted;
-    boost?.(true);
+    boost?.(true, MAP.w);
     // laisse le navigateur repeindre traits/icônes épaissis avant la capture
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     try {

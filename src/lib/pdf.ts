@@ -13,7 +13,7 @@ import {
 
 // A4 paysage : carte pleine largeur en haut, cartouche (gauche) + légende (droite) dessous.
 const FRAME = { x: 8, y: 8, w: 281, h: 194 };
-const MAP = { x: 8, y: FRAME.y, w: 281, maxH: 135 };
+const MAP = { x: 8, y: FRAME.y, w: 281, maxH: 148 };
 const CART = { x: 8, w: 112 };
 const LEG = { x: 126, w: 163, bottom: 195 };
 const FOOT_Y = 199;
@@ -29,14 +29,14 @@ function hexToRgb(hex: string): [number, number, number] {
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
 
-async function capture(mapEl: HTMLElement, boost: ((on: boolean) => void) | undefined, aspect: number): Promise<string | null> {
+async function capture(mapEl: HTMLElement, boost?: (on: boolean) => void): Promise<string | null> {
   boost?.(true);
   // laisse le navigateur repeindre traits/icônes épaissis avant la capture
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   try {
     // capture 2x puis réduction + JPEG : un PNG plein écran ferait 25 Mo de PDF
     const raw = await toPng(mapEl, { pixelRatio: 2, cacheBust: true, backgroundColor: '#ffffff' });
-    return await downscale(raw, 2000, aspect);
+    return await downscale(raw, 2000);
   } catch (err) {
     // ponytail: tuiles distantes non capturables (CORS/réseau) -> plan sans fond de carte
     console.warn('[pdf] capture de la carte impossible', err);
@@ -47,7 +47,7 @@ async function capture(mapEl: HTMLElement, boost: ((on: boolean) => void) | unde
 }
 
 /** Réduit l'image et la recadre au centre au format demandé (largeur/hauteur). */
-async function downscale(dataUrl: string, maxWidth: number, aspect: number): Promise<string> {
+async function downscale(dataUrl: string, maxWidth: number, aspect?: number): Promise<string> {
   const img = new Image();
   img.src = dataUrl;
   await img.decode();
@@ -57,10 +57,10 @@ async function downscale(dataUrl: string, maxWidth: number, aspect: number): Pro
   let sw = img.width;
   let sh = img.height;
   const srcAspect = sw / sh;
-  if (srcAspect > aspect) {
+  if (aspect && srcAspect > aspect) {
     sw = Math.round(sh * aspect);
     sx = Math.round((img.width - sw) / 2);
-  } else if (srcAspect < aspect) {
+  } else if (aspect && srcAspect < aspect) {
     sh = Math.round(sw / aspect);
     sy = Math.round((img.height - sh) / 2);
   }
@@ -205,13 +205,13 @@ function drawFrame(doc: jsPDF): void {
 }
 
 /** Une ligne de cartouche : libellé à gauche, valeur en gras à droite. */
-function statRow(doc: jsPDF, y: number, label: string, value: string): void {
+function statRow(doc: jsPDF, y: number, label: string, value: string, fs = 1): void {
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.2);
+  doc.setFontSize(6.2 * fs);
   doc.setTextColor(...MUTED);
   doc.text(label, CART.x + 3, y);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(6.6);
+  doc.setFontSize(6.6 * fs);
   doc.setTextColor(...INK);
   doc.text(fitText(doc, value, CART.w - 30), CART.x + CART.w - 3, y, { align: 'right' });
 }
@@ -233,6 +233,11 @@ function drawCartouche(doc: jsPDF, plan: Plan, metersPerMm: number, y0: number, 
   const x = CART.x;
   const w = CART.w;
   const cx = x + w / 2;
+  // le cartouche se comprime quand la carte prend de la place (pas de troncature du plan)
+  const DESIGN_H = 47.4; // dernière ligne du dessin d'origine
+  const k = Math.min(1, (h - 3.5) / DESIGN_H);
+  const fs = Math.max(0.8, k);
+  const at = (v: number) => y0 + 2 + v * k;
 
   doc.setDrawColor(...INK);
   doc.setLineWidth(0.3);
@@ -240,57 +245,57 @@ function drawCartouche(doc: jsPDF, plan: Plan, metersPerMm: number, y0: number, 
 
   // titre
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.6);
+  doc.setFontSize(8.6 * fs);
   doc.setTextColor(...INK);
-  doc.text('SCHÉMA DE MISE EN ŒUVRE', cx, y0 + 5.4, { align: 'center' });
-  boxRule(doc, y0 + 8);
+  doc.text('SCHÉMA DE MISE EN ŒUVRE', cx, at(5.4), { align: 'center' });
+  boxRule(doc, at(8));
 
   // lieu : ville en gros, adresse complète, date
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(5.8);
+  doc.setFontSize(5.8 * fs);
   doc.setTextColor(...MUTED);
-  doc.text('Spectacle pyrotechnique', cx, y0 + 11.4, { align: 'center' });
+  doc.text('Spectacle pyrotechnique', cx, at(11.4), { align: 'center' });
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11.5);
+  doc.setFontSize(11.5 * fs);
   doc.setTextColor(...INK);
-  doc.text(fitText(doc, cityOf(plan.site), w - 8), cx, y0 + 17.4, { align: 'center' });
+  doc.text(fitText(doc, cityOf(plan.site), w - 8), cx, at(17.4), { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6);
+  doc.setFontSize(6 * fs);
   doc.setTextColor(...MUTED);
-  doc.text(fitText(doc, plan.site || 'Lieu non renseigné', w - 8), cx, y0 + 21.2, { align: 'center' });
+  doc.text(fitText(doc, plan.site || 'Lieu non renseigné', w - 8), cx, at(21.2), { align: 'center' });
 
-  doc.setFontSize(6.4);
+  doc.setFontSize(6.4 * fs);
   doc.setTextColor(...INK);
   doc.text(
     new Date(`${plan.date}T12:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }),
     cx,
-    y0 + 25,
+    at(25),
     { align: 'center' }
   );
-  boxRule(doc, y0 + 27.4);
+  boxRule(doc, at(27.4));
 
   // échelle mesurable + date d'étude
   const half = w / 2;
   const leftCx = x + half / 2;
   doc.setDrawColor(...RULE);
   doc.setLineWidth(0.1);
-  doc.line(x + half, y0 + 27.4, x + half, y0 + 38.6);
+  doc.line(x + half, at(27.4), x + half, at(38.6));
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(5.8);
+  doc.setFontSize(5.8 * fs);
   doc.setTextColor(...MUTED);
-  doc.text('Échelle', leftCx, y0 + 31, { align: 'center' });
-  doc.text("Date d'étude", x + half * 1.5, y0 + 31, { align: 'center' });
+  doc.text('Échelle', leftCx, at(31), { align: 'center' });
+  doc.text("Date d'étude", x + half * 1.5, at(31), { align: 'center' });
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(6.8);
+  doc.setFontSize(6.8 * fs);
   doc.setTextColor(...INK);
-  doc.text(new Date().toLocaleDateString('fr-FR'), x + half * 1.5, y0 + 35.4, { align: 'center' });
+  doc.text(new Date().toLocaleDateString('fr-FR'), x + half * 1.5, at(35.4), { align: 'center' });
 
   // barre cotée à sa longueur réelle sur le papier : seul repère d'échelle
   const bar = scaleBarLength(metersPerMm, half - 12);
   if (bar.meters) {
-    const by = y0 + 35.4;
+    const by = at(35.4);
     const bx = leftCx - bar.mm / 2;
     doc.setDrawColor(...INK);
     doc.setLineWidth(0.18);
@@ -299,15 +304,15 @@ function drawCartouche(doc: jsPDF, plan: Plan, metersPerMm: number, y0: number, 
     doc.triangle(bx, by, bx + 1.6, by - 0.75, bx + 1.6, by + 0.75, 'F');
     doc.triangle(bx + bar.mm, by, bx + bar.mm - 1.6, by - 0.75, bx + bar.mm - 1.6, by + 0.75, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(5.8);
-    doc.text(`${formatMeters(bar.meters)} m`, leftCx, by + 3.2, { align: 'center' });
+    doc.setFontSize(5.8 * fs);
+    doc.text(`${formatMeters(bar.meters)} m`, leftCx, at(38.6), { align: 'center' });
   }
-  boxRule(doc, y0 + 38.6);
+  boxRule(doc, at(40.4));
 
   // valeurs conservées
   const maxDs = Math.round(plan.elements.reduce((m, e) => Math.max(m, e.ds ?? 0), 0));
-  statRow(doc, y0 + 42, 'DS maximale', `${maxDs} m`);
-  statRow(doc, y0 + 45.2, 'Coordonnées', formatCoord(plan.center[0], plan.center[1], 5));
+  statRow(doc, at(44), 'DS maximale', `${maxDs} m`, fs);
+  statRow(doc, at(47.2), 'Coordonnées', formatCoord(plan.center[0], plan.center[1], 5), fs);
 }
 
 /** Flèche du nord. */
@@ -339,14 +344,13 @@ export async function buildPdf(
   drawFrame(doc);
 
   // ---- Carte pleine largeur : hauteur selon le cadrage réel, sans déformation
-  const aspect = mapEl && mapEl.clientHeight ? mapEl.clientHeight / mapEl.clientWidth : 0.56;
-  const frameAspect = MAP.w / MAP.maxH;
-  // carte plus large que sa case : on recadre la bande centrale plutôt que de laisser des marges
-  const target = aspect <= frameAspect ? frameAspect : aspect;
-  const png = mapEl ? await capture(mapEl, boost, target) : null;
-  const imgW = MAP.w;
-  const imgH = Math.min(MAP.maxH, MAP.w / target);
-  const imgX = MAP.x;
+  // jamais de recadrage : si la carte est plus haute que sa case, on la réduit
+  // légèrement en largeur (marges) plutôt que de tronquer le plan
+  const aspect = mapEl && mapEl.clientWidth ? mapEl.clientHeight / mapEl.clientWidth : 0.53;
+  const png = mapEl ? await capture(mapEl, boost) : null;
+  const imgH = Math.min(MAP.maxH, MAP.w * aspect);
+  const imgW = imgH / aspect;
+  const imgX = MAP.x + (MAP.w - imgW) / 2;
   if (png) {
     doc.addImage(png, 'JPEG', imgX, MAP.y, imgW, imgH, undefined, 'FAST');
   } else {

@@ -74,7 +74,15 @@
     for (const { layer, base } of strokes) {
       layer.setStyle({ weight: on ? Math.max(base, 1.6) * gain : base });
     }
-    for (const pinEl of pinEls) pinEl.style.transform = on ? `scale(${gain})` : '';
+    for (const pinEl of pinEls) {
+      pinEl.style.transform = on ? `scale(${gain})` : '';
+      // l'ombre portée n'est pas transformée par la capture -> artefact gris à l'impression
+      pinEl.style.boxShadow = on ? 'none' : '';
+    }
+    // les contrôles Leaflet ne font pas partie du plan
+    for (const ctrl of el?.querySelectorAll<HTMLElement>('.leaflet-control-zoom') ?? []) {
+      ctrl.style.display = on ? 'none' : '';
+    }
   }
 
   function draw() {

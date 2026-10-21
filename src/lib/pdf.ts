@@ -9,16 +9,16 @@ import {
   ringArea,
   ringLength,
   scaleBarLength,
-  scaleDenominator,
 } from './geo';
 
-// A4 paysage, tout sur une page : bandeau titre, carte + cartouche, légende, pied.
+// A4 paysage : carte pleine largeur en haut, cartouche (gauche) + légende (droite) dessous.
 const FRAME = { x: 8, y: 8, w: 281, h: 194 };
-const HEAD = { y: 20 }; // filet sous le bandeau titre
-const MAP = { x: 8, y: HEAD.y, w: 186, h: 122 };
-const BOX = { x: 194, y: HEAD.y, w: 95, h: 122 };
-const LEG = { x: 8, w: 281, bottom: 195 };
+const MAP = { x: 8, y: FRAME.y, w: 281, maxH: 148 };
+const CART = { x: 8, w: 112 };
+const LEG = { x: 126, w: 163, bottom: 195 };
 const FOOT_Y = 199;
+/** Types regroupés en une seule ligne de légende (un seul point d'eau, un seul extincteur…). */
+const MERGED: Kind[] = ['point_eau', 'extincteur', 'echelle', 'accueil_secours', 'acces_secours', 'surveillance'];
 
 const INK: [number, number, number] = [26, 26, 26];
 const MUTED: [number, number, number] = [110, 110, 110];
@@ -29,14 +29,7 @@ function hexToRgb(hex: string): [number, number, number] {
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
 
-function kindCount(plan: Plan, kind: PElement['kind']) {
-  return plan.elements.filter((e) => e.kind === kind).length;
-}
-
-async function capture(mapEl: HTMLElement, boost?: (on: boolean) => void): Promise<string | null> {
-  boost?.(true);
-  // laisse le navigateur repeindre traits/icônes épaissis avant la capture
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+async function capture(mapEl: HTMLElement): Promise<string | null> {
   try {
     // capture 2x puis réduction + JPEG : un PNG plein écran ferait 25 Mo de PDF
     const raw = await toPng(mapEl, { pixelRatio: 2, cacheBust: true, backgroundColor: '#ffffff' });
@@ -45,22 +38,38 @@ async function capture(mapEl: HTMLElement, boost?: (on: boolean) => void): Promi
     // ponytail: tuiles distantes non capturables (CORS/réseau) -> plan sans fond de carte
     console.warn('[pdf] capture de la carte impossible', err);
     return null;
-  } finally {
-    boost?.(false);
   }
 }
 
-async function downscale(dataUrl: string, maxWidth: number): Promise<string> {
+/** Élargit la carte au format du plan avant la capture ; renvoie sa largeur en px CSS. */
+export type PdfFit = (aspect: number, on: boolean) => Promise<number | void>;
+
+/** Réduit l'image et la recadre au centre au format demandé (largeur/hauteur). */
+async function downscale(dataUrl: string, maxWidth: number, aspect?: number): Promise<string> {
   const img = new Image();
   img.src = dataUrl;
   await img.decode();
-  const scale = Math.min(1, maxWidth / img.width);
+
+  let sx = 0;
+  let sy = 0;
+  let sw = img.width;
+  let sh = img.height;
+  const srcAspect = sw / sh;
+  if (aspect && srcAspect > aspect) {
+    sw = Math.round(sh * aspect);
+    sx = Math.round((img.width - sw) / 2);
+  } else if (aspect && srcAspect < aspect) {
+    sh = Math.round(sw / aspect);
+    sy = Math.round((img.height - sh) / 2);
+  }
+
+  const scale = Math.min(1, maxWidth / sw);
   const canvas = document.createElement('canvas');
-  canvas.width = Math.round(img.width * scale);
-  canvas.height = Math.round(img.height * scale);
+  canvas.width = Math.round(sw * scale);
+  canvas.height = Math.round(sh * scale);
   const ctx = canvas.getContext('2d');
   if (!ctx) return dataUrl;
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL('image/jpeg', 0.86);
 }
 
@@ -96,56 +105,91 @@ function fitText(doc: jsPDF, text: string, maxWidth: number): string {
   return `${t}…`;
 }
 
-/** Détails techniques d'un élément, sur une seule ligne. */
+/** Détails techniques d'un élément, sur une seule ligne (sans GPS : la carte suffit). */
 function detailOf(e: PElement): string {
   const d: string[] = [];
-  if (e.ref) d.push(`réf ${e.ref}`);
-  if (e.calibre != null) d.push(`${e.calibre} mm`);
-  if (e.ds != null) d.push(`DS ${e.ds} m`);
+  if (e.kind === 'artifice') {
+    if (e.ds != null) d.push(`DS ${e.ds} m`);
+    if (e.ref) d.push(`réf ${e.ref}`);
+    if (e.calibre != null) d.push(`${e.calibre} mm`);
+    return d.join(' · ');
+  }
   if (e.ring?.length) {
     d.push(
       isZone(e.kind)
-        ? `${e.ring.length} pts · périmètre ${formatMeters(ringLength(e.ring, true))} m · ${formatMeters(ringArea(e.ring))} m²`
-        : `${e.ring.length} pts · longueur ${formatMeters(ringLength(e.ring))} m`
+        ? `${formatMeters(ringLength(e.ring, true))} m · ${formatMeters(ringArea(e.ring))} m²`
+        : `${formatMeters(ringLength(e.ring))} m`
     );
   }
-  d.push(formatCoord(e.lat, e.lng));
   return d.join(' · ');
+}
+
+interface LegRow {
+  kind: Kind;
+  color: string;
+  label: string;
+  details: string;
+}
+
+/** Lignes de légende : les équipements répétés sont fusionnés en une seule entrée. */
+function legendRowsFor(plan: Plan): LegRow[] {
+  const rows: LegRow[] = [];
+  const seen = new Set<Kind>();
+  for (const e of plan.elements) {
+    const meta = KIND_META[e.kind];
+    const color = colorOf(e);
+    if (MERGED.includes(e.kind)) {
+      if (seen.has(e.kind)) continue;
+      seen.add(e.kind);
+      rows.push({ kind: e.kind, color, label: meta.label, details: '' });
+      continue;
+    }
+    const label =
+      e.kind === 'marqueur'
+        ? `Marqueur — ${e.label}`
+        : e.label && e.label !== meta.label
+          ? `${meta.label} — ${e.label}`
+          : meta.label;
+    rows.push({ kind: e.kind, color, label, details: e.kind === 'marqueur' ? '' : detailOf(e) });
+  }
+  return rows;
 }
 
 function legendRow(
   doc: jsPDF,
-  e: PElement,
-  n: number,
+  row: LegRow,
   x: number,
   y: number,
   w: number,
   icon: string | null,
   fontPt: number
 ): void {
-  if (icon) {
-    doc.addImage(icon, 'PNG', x, y - 2.9, 3.2, 3.2, undefined, 'FAST');
+  const [cr, cg, cb] = hexToRgb(row.color);
+  if (KIND_META[row.kind].shape === 'line') {
+    // barriérage : le trait orange lui-même, comme sur le plan
+    doc.setDrawColor(cr, cg, cb);
+    doc.setLineWidth(0.9);
+    doc.line(x, y - 0.7, x + 3.4, y - 0.7);
+  } else if (icon) {
+    doc.addImage(icon, 'PNG', x, y - 2.9, 3.4, 3.4, undefined, 'FAST');
   } else {
-    const [r, g, b] = hexToRgb(colorOf(e));
-    doc.setFillColor(r, g, b);
-    doc.roundedRect(x, y - 2.4, 2.6, 2.6, 0.8, 0.8, 'F');
+    doc.setFillColor(cr, cg, cb);
+    doc.roundedRect(x, y - 2.4, 2.8, 2.8, 0.8, 0.8, 'F');
   }
-  const tx = x + 4.4;
-  const maxW = w - 4.4;
+  const tx = x + 4.8;
+  const maxW = w - 4.8;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(fontPt);
   doc.setTextColor(...INK);
-  const kindLabel = KIND_META[e.kind].label;
-  const title = e.label && e.label !== kindLabel ? `${n}. ${kindLabel} — ${e.label}` : `${n}. ${kindLabel}`;
-  const head = fitText(doc, title, maxW);
+  const head = fitText(doc, row.label, maxW);
   doc.text(head, tx, y);
 
-  const headW = doc.getTextWidth(head) + 1.2;
-  if (headW < maxW) {
+  const headW = doc.getTextWidth(head) + 1.4;
+  if (row.details && headW < maxW) {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...MUTED);
-    doc.text(fitText(doc, detailOf(e), maxW - headW), tx + headW, y);
+    doc.text(fitText(doc, row.details, maxW - headW), tx + headW, y);
   }
 }
 
@@ -159,22 +203,22 @@ function drawFrame(doc: jsPDF): void {
 }
 
 /** Une ligne de cartouche : libellé à gauche, valeur en gras à droite. */
-function statRow(doc: jsPDF, y: number, label: string, value: string): void {
+function statRow(doc: jsPDF, y: number, label: string, value: string, fs = 1): void {
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.2);
+  doc.setFontSize(6.2 * fs);
   doc.setTextColor(...MUTED);
-  doc.text(label, BOX.x + 3, y);
+  doc.text(label, CART.x + 3, y);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(6.8);
+  doc.setFontSize(6.6 * fs);
   doc.setTextColor(...INK);
-  doc.text(fitText(doc, value, BOX.w - 30), BOX.x + BOX.w - 3, y, { align: 'right' });
+  doc.text(fitText(doc, value, CART.w - 30), CART.x + CART.w - 3, y, { align: 'right' });
 }
 
 /** Filet horizontal dans le cartouche. */
 function boxRule(doc: jsPDF, y: number): void {
   doc.setDrawColor(...RULE);
   doc.setLineWidth(0.12);
-  doc.line(BOX.x, y, BOX.x + BOX.w, y);
+  doc.line(CART.x, y, CART.x + CART.w, y);
 }
 
 /** Commune seule, extraite du libellé d'adresse (« Sarrey 63550 … » -> « Sarrey »). */
@@ -182,157 +226,91 @@ function cityOf(site: string): string {
   return site.replace(/\s+\d{5}.*$/, '').trim() || site.trim() || '—';
 }
 
-/** Cartouche « schéma de mise en œuvre » : blocs empilés façon cartouche de plan. */
-function drawCartouche(doc: jsPDF, plan: Plan, denom: number, h: number): void {
-  const x = BOX.x;
-  const w = BOX.w;
+/** Cartouche « schéma de mise en œuvre » compact, sous la carte. */
+function drawCartouche(doc: jsPDF, plan: Plan, metersPerMm: number, y0: number, h: number): void {
+  const x = CART.x;
+  const w = CART.w;
   const cx = x + w / 2;
+  // le cartouche se comprime quand la carte prend de la place (pas de troncature du plan)
+  const DESIGN_H = 47.4; // dernière ligne du dessin d'origine
+  const k = Math.min(1, (h - 3.5) / DESIGN_H);
+  const fs = Math.max(0.8, k);
+  const at = (v: number) => y0 + 2 + v * k;
 
   doc.setDrawColor(...INK);
   doc.setLineWidth(0.3);
-  doc.rect(x, BOX.y, w, h);
+  doc.rect(x, y0, w, h);
 
-  // 1. bandeau titre
-  doc.setFillColor(255, 255, 255);
+  // titre
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9.5);
+  doc.setFontSize(8.6 * fs);
   doc.setTextColor(...INK);
-  doc.text('SCHÉMA DE MISE EN ŒUVRE', cx, BOX.y + 6.6, { align: 'center' });
-  boxRule(doc, BOX.y + 10.5);
+  doc.text('SCHÉMA DE MISE EN ŒUVRE', cx, at(5.4), { align: 'center' });
+  boxRule(doc, at(8));
 
-  // 2. spectacle / ville / site / date
-  let y = BOX.y + 15;
+  // lieu : ville en gros, adresse complète, date
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.4);
+  doc.setFontSize(5.8 * fs);
   doc.setTextColor(...MUTED);
-  doc.text('Spectacle pyrotechnique', cx, y, { align: 'center' });
+  doc.text('Spectacle pyrotechnique', cx, at(11.4), { align: 'center' });
 
-  y += 7;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
+  doc.setFontSize(11.5 * fs);
   doc.setTextColor(...INK);
-  doc.text(fitText(doc, cityOf(plan.site), w - 8), cx, y, { align: 'center' });
+  doc.text(fitText(doc, cityOf(plan.site), w - 8), cx, at(17.4), { align: 'center' });
 
-  y += 5.2;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.4);
+  doc.setFontSize(6 * fs);
   doc.setTextColor(...MUTED);
-  if (plan.site) doc.text(fitText(doc, plan.site, w - 8), cx, y, { align: 'center' });
+  doc.text(fitText(doc, plan.site || 'Lieu non renseigné', w - 8), cx, at(21.2), { align: 'center' });
 
-  y += 4.4;
-  doc.setFontSize(7);
+  doc.setFontSize(6.4 * fs);
   doc.setTextColor(...INK);
   doc.text(
     new Date(`${plan.date}T12:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }),
     cx,
-    y,
+    at(25),
     { align: 'center' }
   );
-  boxRule(doc, BOX.y + 35);
+  boxRule(doc, at(27.4));
 
-  // 3. échelle + date d'étude (deux cases)
+  // échelle mesurable + date d'étude
   const half = w / 2;
-  doc.setDrawColor(...RULE);
-  doc.setLineWidth(0.12);
-  doc.line(x + half, BOX.y + 35, x + half, BOX.y + 51);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6);
-  doc.setTextColor(...MUTED);
-  doc.text('Échelle', x + half / 2, BOX.y + 39, { align: 'center' });
-  doc.text("Date d'étude", x + half * 1.5, BOX.y + 39, { align: 'center' });
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(...INK);
-  doc.text(denom ? `1:${denom.toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ')}` : '—', x + half / 2, BOX.y + 44, { align: 'center' });
-  doc.setFontSize(7);
-  doc.text(new Date().toLocaleDateString('fr-FR'), x + half * 1.5, BOX.y + 44, { align: 'center' });
-
-  // flèche « <---m---> » sous l'échelle
-  doc.setDrawColor(...MUTED);
-  doc.setLineWidth(0.12);
-  const ax = x + half / 2 - 6;
-  doc.line(ax, BOX.y + 48, ax + 12, BOX.y + 48);
-  doc.triangle(ax, BOX.y + 48, ax + 1.8, BOX.y + 47.2, ax + 1.8, BOX.y + 48.8, 'F');
-  doc.triangle(ax + 12, BOX.y + 48, ax + 10.2, BOX.y + 47.2, ax + 10.2, BOX.y + 48.8, 'F');
-  doc.setFillColor(...INK);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(5.6);
-  doc.setTextColor(...MUTED);
-  doc.text('m', cx - half / 2, BOX.y + 46.6, { align: 'center' });
-  boxRule(doc, BOX.y + 51);
-
-  // 4. statistiques du plan
-  const meters = plan.elements.reduce((acc, e) => acc + (e.ring && !isZone(e.kind) ? ringLength(e.ring) : 0), 0);
-  let sy = BOX.y + 56;
-  statRow(doc, sy, 'Artifices', String(kindCount(plan, 'artifice')));
-  sy += 5.6;
-  statRow(doc, sy, 'DS maximale', `${Math.round(plan.elements.reduce((m, e) => Math.max(m, e.ds ?? 0), 0))} m`);
-  sy += 5.6;
-  statRow(doc, sy, 'Barriérage', `${formatMeters(meters)} m`);
-  sy += 5.6;
-  statRow(doc, sy, 'Zone public', String(kindCount(plan, 'zone_public')));
-  sy += 5.6;
-  statRow(doc, sy, 'Zones perso', String(kindCount(plan, 'zone_perso')));
-  sy += 5.6;
-  statRow(
-    doc,
-    sy,
-    'Autres éléments',
-    String(plan.elements.length - kindCount(plan, 'artifice') - kindCount(plan, 'zone_perso') - kindCount(plan, 'zone_public'))
-  );
-
-  // 5. pied de cartouche : GPS + édition
-  const fy = BOX.y + h - 10.4;
-  boxRule(doc, fy - 4);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6);
-  doc.setTextColor(...MUTED);
-  doc.text('Coordonnées', x + 3, fy);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(6.6);
-  doc.setTextColor(...INK);
-  doc.text(formatCoord(plan.center[0], plan.center[1], 5), x + w - 3, fy, { align: 'right' });
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6);
-  doc.setTextColor(...MUTED);
-  doc.text('Édité le', x + 3, fy + 5);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(6.6);
-  doc.setTextColor(...INK);
-  doc.text(
-    new Date().toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }),
-    x + w - 3,
-    fy + 5,
-    { align: 'right' }
-  );
-}
-
-/** Barre d'échelle « ronde » dessinée sur la carte. */
-function drawScaleBar(doc: jsPDF, metersPerMm: number, x: number, y: number, maxMm = 36): void {
-  const bar = scaleBarLength(metersPerMm, maxMm);
-  if (!bar.meters) return;
-  const segs = 4;
-  const segW = bar.mm / segs;
-  const h = 1.4;
-
-  // fond blanc : la barre reste lisible sur la carte
-  doc.setFillColor(255, 255, 255);
+  const leftCx = x + half / 2;
   doc.setDrawColor(...RULE);
   doc.setLineWidth(0.1);
-  doc.rect(x - 1.5, y - 4.6, bar.mm + 3, 8, 'FD');
-
-  for (let i = 0; i < segs; i++) {
-    if (i % 2 === 0) doc.setFillColor(INK[0], INK[1], INK[2]);
-    else doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(...INK);
-    doc.setLineWidth(0.15);
-    doc.rect(x + i * segW, y, segW, h, 'FD');
-  }
+  doc.line(x + half, at(27.4), x + half, at(38.6));
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(5);
+  doc.setFontSize(5.8 * fs);
+  doc.setTextColor(...MUTED);
+  doc.text('Échelle', leftCx, at(31), { align: 'center' });
+  doc.text("Date d'étude", x + half * 1.5, at(31), { align: 'center' });
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.8 * fs);
   doc.setTextColor(...INK);
-  doc.text('0', x, y - 1.4);
-  doc.text(`${formatMeters(bar.meters)} m`, x + bar.mm, y - 1.4, { align: 'right' });
+  doc.text(new Date().toLocaleDateString('fr-FR'), x + half * 1.5, at(35.4), { align: 'center' });
+
+  // barre cotée à sa longueur réelle sur le papier : seul repère d'échelle
+  const bar = scaleBarLength(metersPerMm, half - 12);
+  if (bar.meters) {
+    const by = at(35.4);
+    const bx = leftCx - bar.mm / 2;
+    doc.setDrawColor(...INK);
+    doc.setLineWidth(0.18);
+    doc.line(bx, by, bx + bar.mm, by);
+    doc.setFillColor(...INK);
+    doc.triangle(bx, by, bx + 1.6, by - 0.75, bx + 1.6, by + 0.75, 'F');
+    doc.triangle(bx + bar.mm, by, bx + bar.mm - 1.6, by - 0.75, bx + bar.mm - 1.6, by + 0.75, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(5.8 * fs);
+    doc.text(`${formatMeters(bar.meters)} m`, leftCx, at(38.6), { align: 'center' });
+  }
+  boxRule(doc, at(40.4));
+
+  // valeurs conservées
+  const maxDs = Math.round(plan.elements.reduce((m, e) => Math.max(m, e.ds ?? 0), 0));
+  statRow(doc, at(44), 'DS maximale', `${maxDs} m`, fs);
+  statRow(doc, at(47.2), 'Coordonnées', formatCoord(plan.center[0], plan.center[1], 5), fs);
 }
 
 /** Flèche du nord. */
@@ -354,87 +332,73 @@ export async function buildPdf(
   plan: Plan,
   mapEl: HTMLElement | null,
   mapWidthPx: number,
-  boost?: (on: boolean) => void
+  boost?: (on: boolean) => void,
+  fit?: PdfFit
 ): Promise<Uint8Array> {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const [lat, lng] = plan.center;
-  const groundMeters = mapWidthPx * metersPerPixel(lat, plan.zoom);
-  const metersPerMm = groundMeters / MAP.w;
-  const denom = scaleDenominator(groundMeters, MAP.w);
+  const [lat] = plan.center;
+  const target = MAP.w / MAP.maxH; // format du plan sur la page
 
   drawFrame(doc);
 
-  // ---- Bandeau titre
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.setTextColor(...INK);
-  doc.text(fitText(doc, plan.titre, 190), FRAME.x + 2, 15.5);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(...MUTED);
-  doc.text(
-    new Date(`${plan.date}T12:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }),
-    FRAME.x + FRAME.w - 2,
-    15.5,
-    { align: 'right' }
-  );
-  doc.setDrawColor(...RULE);
-  doc.setLineWidth(0.15);
-  doc.line(FRAME.x + 1.2, HEAD.y, FRAME.x + FRAME.w - 1.2, HEAD.y);
+  // ---- Carte élargie au format de la page : même échelle, plus de terrain,
+  // aucune déformation (au lieu d'être réduite avec des marges blanches)
+  let widthPx = mapWidthPx;
+  let png: string | null = null;
+  if (mapEl) {
+    const fitted = await fit?.(target, true);
+    if (typeof fitted === 'number' && fitted > 0) widthPx = fitted;
+    boost?.(true);
+    // laisse le navigateur repeindre traits/icônes épaissis avant la capture
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    try {
+      png = await capture(mapEl);
+    } finally {
+      boost?.(false);
+      await fit?.(target, false);
+    }
+  }
+  const groundMeters = widthPx * metersPerPixel(lat, plan.zoom);
 
-  // ---- Carte : hauteur déduite du cadrage réel (pas de bandes blanches)
-  const png = mapEl ? await capture(mapEl, boost) : null;
-  const aspect = mapEl && mapEl.clientHeight ? mapEl.clientHeight / mapEl.clientWidth : MAP.h / MAP.w;
-  const imgH = Math.min(MAP.h, MAP.w * aspect);
-  const boxH = Math.max(100, imgH);
-  const legY = MAP.y + Math.max(imgH, boxH) + 8;
+  // « contain » : l'image remplit la case sans jamais être déformée
+  const hpx = mapEl?.clientHeight ?? Math.round(mapWidthPx / target);
+  const scale = Math.min(MAP.w / widthPx, MAP.maxH / hpx);
+  const imgW = widthPx * scale;
+  const imgH = hpx * scale;
+  const imgX = MAP.x + (MAP.w - imgW) / 2;
+  const metersPerMm = groundMeters / imgW;
   if (png) {
-    doc.addImage(png, 'JPEG', MAP.x, MAP.y, MAP.w, imgH, undefined, 'FAST');
+    doc.addImage(png, 'JPEG', imgX, MAP.y, imgW, imgH, undefined, 'FAST');
   } else {
     doc.setDrawColor(210, 210, 210);
-    doc.rect(MAP.x, MAP.y, MAP.w, imgH);
+    doc.rect(imgX, MAP.y, imgW, imgH);
     doc.setTextColor(160, 160, 160);
     doc.setFontSize(9);
-    doc.text('Fond de carte non disponible (hors ligne)', MAP.x + 4, MAP.y + 8);
+    doc.text('Fond de carte non disponible (hors ligne)', imgX + 4, MAP.y + 8);
   }
   doc.setDrawColor(...RULE);
   doc.setLineWidth(0.15);
-  doc.rect(MAP.x, MAP.y, MAP.w, imgH);
+  doc.rect(imgX, MAP.y, imgW, imgH);
+  drawNorth(doc, imgX + imgW - 8, MAP.y + 8);
 
-  drawScaleBar(doc, metersPerMm, MAP.x + 5, MAP.y + imgH - 3);
-  drawNorth(doc, MAP.x + MAP.w - 8, MAP.y + 8);
+  // ---- Bande basse : cartouche à gauche, légende à droite
+  const bandY = MAP.y + imgH + 5;
+  const bandH = LEG.bottom - bandY;
+  drawCartouche(doc, plan, metersPerMm, bandY, bandH);
 
-  // ---- Cartouche (même hauteur que la carte : la légende reste sous les deux)
-  drawCartouche(doc, plan, denom, boxH);
-
-  // ---- Légende : 3 colonnes, police réduite tant que ça tient sur la page
-  if (plan.elements.length) {
+  const rows = legendRowsFor(plan);
+  if (rows.length) {
     const icons = new Map<string, string | null>();
-    for (const e of plan.elements) {
-      const key = `${e.kind}|${colorOf(e)}`;
-      if (!icons.has(key)) icons.set(key, await iconPng(e.kind, colorOf(e)));
+    for (const r of rows) {
+      const key = `${r.kind}|${r.color}`;
+      if (!icons.has(key)) icons.set(key, await iconPng(r.kind, r.color));
     }
 
-    const inner = LEG.w - 6;
-    const colW = inner / 3;
-    const colX = [LEG.x + 3, LEG.x + 3 + colW, LEG.x + 3 + 2 * colW];
-    const avail = LEG.bottom - legY - 6;
-
-    let fontPt = 6.2;
-    let capacity = 0;
-    for (const f of [6.2, 5.8, 5.4, 5.0, 4.6]) {
-      capacity = Math.floor(avail / (f * 0.68));
-      fontPt = f;
-      if (capacity * 3 >= plan.elements.length) break;
-    }
-    const rowStep = fontPt * 0.68;
-    // réparti sur les 3 colonnes sans laisser deux colonnes vides
-    const perCol = Math.min(capacity, Math.ceil(plan.elements.length / 3));
-
+    // en-tête de légende
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(...INK);
-    doc.text('Légende', LEG.x + 3, legY - 2);
+    doc.text('Légende', LEG.x, bandY + 5.4);
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(6.2);
     doc.setTextColor(...MUTED);
@@ -442,41 +406,46 @@ export async function buildPdf(
       fitText(
         doc,
         'Les différents matériels seront positionnés en fonction de leur distance de sécurité respective, conformément à la réglementation en vigueur.',
-        LEG.w - 40
+        LEG.w - 22
       ),
-      LEG.x + 22,
-      legY - 2
+      LEG.x + 21,
+      bandY + 5.4
     );
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(5.8);
-    doc.text(`${plan.elements.length} éléments`, LEG.x + LEG.w - 3, legY - 2, { align: 'right' });
     doc.setDrawColor(...RULE);
     doc.setLineWidth(0.12);
-    doc.line(LEG.x + 3, legY - 1.6, LEG.x + LEG.w - 3, legY - 1.6);
+    doc.line(LEG.x, bandY + 8, LEG.x + LEG.w, bandY + 8);
 
-    plan.elements.forEach((e, i) => {
+    // 2 colonnes, police réduite tant que ça tient
+    const top = bandY + 12.4;
+    const inner = LEG.w - 4;
+    const colW = inner / 2;
+    const colX = [LEG.x, LEG.x + colW + 4];
+    const avail = LEG.bottom - top;
+
+    let fontPt = 6.2;
+    let capacity = 0;
+    for (const f of [6.2, 5.8, 5.4, 5.0, 4.6]) {
+      capacity = Math.floor(avail / (f * 0.72));
+      fontPt = f;
+      if (capacity * 2 >= rows.length) break;
+    }
+    const rowStep = fontPt * 0.72;
+    const perCol = Math.min(capacity, Math.ceil(rows.length / 2));
+
+    rows.forEach((r, i) => {
       const col = Math.floor(i / perCol);
-      const row = i % perCol;
-      if (col > 2) {
-        // ponytail: au-delà de ~40 éléments on déborde sur une 2e page plutôt que d'inventer une mise en page
+      const line = i % perCol;
+      if (col > 1) {
+        // ponytail: au-delà de ~2 colonnes on déborde sur une 2e page plutôt que d'inventer une mise en page
         doc.addPage('a4', 'landscape');
         drawFrame(doc);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(7);
         doc.setTextColor(...INK);
-        doc.text(`LÉGENDE (suite) — ${plan.titre}`, LEG.x + 1.2, 20);
+        doc.text(`LÉGENDE (suite) — ${plan.titre}`, LEG.x, 20);
         return;
       }
-      legendRow(
-        doc,
-        e,
-        i + 1,
-        colX[col],
-        legY + row * rowStep + 2.6,
-        colW,
-        icons.get(`${e.kind}|${colorOf(e)}`) ?? null,
-        fontPt
-      );
+      legendRow(doc, r, colX[col], top + line * rowStep + 2, colW, icons.get(`${r.kind}|${r.color}`) ?? null, fontPt);
     });
   }
 

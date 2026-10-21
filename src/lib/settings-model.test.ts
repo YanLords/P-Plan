@@ -23,6 +23,7 @@ test('raccourcis par défaut : ceux de la spécification', () => {
     point_eau: 'e',
     extincteur: 'w',
     echelle: 'x',
+    surveillance: 'g',
     marqueur: 'm',
   });
   for (const tool of SHORTCUT_ORDER) {

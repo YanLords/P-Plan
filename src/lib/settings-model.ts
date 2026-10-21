@@ -31,6 +31,7 @@ export const SHORTCUT_ORDER: ToolKey[] = [
   'point_eau',
   'extincteur',
   'echelle',
+  'surveillance',
   'marqueur',
 ];
 
@@ -45,6 +46,7 @@ export const SHORTCUT_LABELS: Record<ToolKey, string> = {
   point_eau: "Point d'eau",
   extincteur: 'Extincteur',
   echelle: 'Échelle',
+  surveillance: 'Surveillance',
   marqueur: 'Marqueur',
 };
 
@@ -59,6 +61,7 @@ export const DEFAULT_SHORTCUTS: Record<ToolKey, string> = {
   point_eau: 'e',
   extincteur: 'w',
   echelle: 'x',
+  surveillance: 'g',
   marqueur: 'm',
 };
 

@@ -48,6 +48,22 @@
     });
   }
 
+  /** Pointe de flèche orientée dans l'axe du dernier segment (voie de sortie). */
+  function arrowIcon(from: [number, number], to: [number, number], color: string): L.DivIcon {
+    let deg = 0;
+    if (map) {
+      const a = map.latLngToContainerPoint(from);
+      const b = map.latLngToContainerPoint(to);
+      deg = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+    }
+    return L.divIcon({
+      className: 'pf-arrow-wrap',
+      html: `<div class="pf-arrow" style="--c:${color};transform:rotate(${deg}deg)"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M21.5 12 3 2.6l4.8 9.4L3 21.4z" fill="currentColor"/></svg></div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+  }
+
   const handleIcon = () =>
     L.divIcon({ className: 'pf-handle-wrap', html: '<div class="pf-handle"></div>', iconSize: [11, 11], iconAnchor: [5.5, 5.5] });
 
@@ -138,11 +154,22 @@
 
       if (e.ring && e.ring.length > 1) {
         const baseW = isZone(e.kind) ? 2 : 3;
+        const isSortie = e.kind === 'sortie';
         const shape = isZone(e.kind)
           ? L.polygon(e.ring, { color, weight: baseW, fillColor: color, fillOpacity: 0.12 })
-          : L.polyline(e.ring, { color, weight: baseW, dashArray: '7 5' });
+          : L.polyline(e.ring, { color, weight: baseW, dashArray: isSortie ? undefined : '7 5' });
         shape.addTo(overlay!).on('click', () => store.select(e.id));
         strokes.push({ layer: shape, base: baseW });
+
+        if (isSortie && e.ring.length > 1) {
+          const last = e.ring[e.ring.length - 1];
+          const prev = e.ring[e.ring.length - 2];
+          L.marker(last, {
+            icon: arrowIcon(prev, last, color),
+            interactive: false,
+            zIndexOffset: 350,
+          }).addTo(overlay!);
+        }
         // barrière : longueur survolée = métrage à couvrir
         if (!isZone(e.kind) && e.ring) {
           shape.bindTooltip(`${formatMeters(ringLength(e.ring))} m`, {
@@ -261,16 +288,20 @@
     const pts = store.draft;
     if (!pts.length) return;
     const isZoneDraft = store.tool !== 'select' && isZone(store.tool);
+    const toolColor =
+      store.tool === 'select' ? KIND_META.zone_perso.color : KIND_META[store.tool].color;
     if (pts.length > 1) {
       (isZoneDraft
-        ? L.polygon(pts, {
-            color: store.tool === 'select' ? KIND_META.zone_perso.color : KIND_META[store.tool].color,
-            weight: 2,
-            dashArray: '6 4',
-            fillOpacity: 0.1,
-          })
-        : L.polyline(pts, { color: KIND_META.barrierage.color, weight: 2, dashArray: '6 4' })
+        ? L.polygon(pts, { color: toolColor, weight: 2, dashArray: '6 4', fillOpacity: 0.1 })
+        : L.polyline(pts, { color: toolColor, weight: 2, dashArray: '6 4' })
       ).addTo(draftGroup);
+
+      // plume : la pointe suit le dernier point posé
+      if (store.tool === 'sortie') {
+        const last = pts[pts.length - 1];
+        const prev = pts[pts.length - 2];
+        L.marker(last, { icon: arrowIcon(prev, last, toolColor), interactive: false }).addTo(draftGroup);
+      }
     }
     pts.forEach((p) =>
       L.circleMarker(p, { radius: 4, color: '#1A1A1A', weight: 1.5, fillColor: '#fff', fillOpacity: 1 }).addTo(

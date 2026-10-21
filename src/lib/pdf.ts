@@ -189,10 +189,15 @@ function legendRow(
 ): void {
   const [cr, cg, cb] = hexToRgb(row.color);
   if (KIND_META[row.kind].shape === 'line') {
-    // barriérage : le trait orange lui-même, comme sur le plan
+    // barriérage / voie de sortie : le trait du plan, fléché pour une sortie
     doc.setDrawColor(cr, cg, cb);
     doc.setLineWidth(0.9);
-    doc.line(x, y - 0.7, x + 3.4, y - 0.7);
+    const end = x + 3.4;
+    doc.line(x, y - 0.7, row.kind === 'sortie' ? end - 1 : end, y - 0.7);
+    if (row.kind === 'sortie') {
+      doc.setFillColor(cr, cg, cb);
+      doc.triangle(end, y - 0.7, end - 1.6, y - 1.7, end - 1.6, y + 0.3, 'F');
+    }
   } else if (icon) {
     doc.addImage(icon, 'PNG', x, y - 2.9, 3.4, 3.4, undefined, 'FAST');
   } else {

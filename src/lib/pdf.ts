@@ -29,10 +29,7 @@ function hexToRgb(hex: string): [number, number, number] {
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
 
-async function capture(mapEl: HTMLElement, boost?: (on: boolean) => void): Promise<string | null> {
-  boost?.(true);
-  // laisse le navigateur repeindre traits/icônes épaissis avant la capture
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+async function capture(mapEl: HTMLElement): Promise<string | null> {
   try {
     // capture 2x puis réduction + JPEG : un PNG plein écran ferait 25 Mo de PDF
     const raw = await toPng(mapEl, { pixelRatio: 2, cacheBust: true, backgroundColor: '#ffffff' });
@@ -41,10 +38,11 @@ async function capture(mapEl: HTMLElement, boost?: (on: boolean) => void): Promi
     // ponytail: tuiles distantes non capturables (CORS/réseau) -> plan sans fond de carte
     console.warn('[pdf] capture de la carte impossible', err);
     return null;
-  } finally {
-    boost?.(false);
   }
 }
+
+/** Élargit la carte au format du plan avant la capture ; renvoie sa largeur en px CSS. */
+export type PdfFit = (aspect: number, on: boolean) => Promise<number | void>;
 
 /** Réduit l'image et la recadre au centre au format demandé (largeur/hauteur). */
 async function downscale(dataUrl: string, maxWidth: number, aspect?: number): Promise<string> {
@@ -334,23 +332,41 @@ export async function buildPdf(
   plan: Plan,
   mapEl: HTMLElement | null,
   mapWidthPx: number,
-  boost?: (on: boolean) => void
+  boost?: (on: boolean) => void,
+  fit?: PdfFit
 ): Promise<Uint8Array> {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const [lat, lng] = plan.center;
-  const groundMeters = mapWidthPx * metersPerPixel(lat, plan.zoom);
-  const metersPerMm = groundMeters / MAP.w;
+  const [lat] = plan.center;
+  const target = MAP.w / MAP.maxH; // format du plan sur la page
 
   drawFrame(doc);
 
-  // ---- Carte pleine largeur : hauteur selon le cadrage réel, sans déformation
-  // jamais de recadrage : si la carte est plus haute que sa case, on la réduit
-  // légèrement en largeur (marges) plutôt que de tronquer le plan
-  const aspect = mapEl && mapEl.clientWidth ? mapEl.clientHeight / mapEl.clientWidth : 0.53;
-  const png = mapEl ? await capture(mapEl, boost) : null;
-  const imgH = Math.min(MAP.maxH, MAP.w * aspect);
-  const imgW = imgH / aspect;
+  // ---- Carte élargie au format de la page : même échelle, plus de terrain,
+  // aucune déformation (au lieu d'être réduite avec des marges blanches)
+  let widthPx = mapWidthPx;
+  let png: string | null = null;
+  if (mapEl) {
+    const fitted = await fit?.(target, true);
+    if (typeof fitted === 'number' && fitted > 0) widthPx = fitted;
+    boost?.(true);
+    // laisse le navigateur repeindre traits/icônes épaissis avant la capture
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    try {
+      png = await capture(mapEl);
+    } finally {
+      boost?.(false);
+      await fit?.(target, false);
+    }
+  }
+  const groundMeters = widthPx * metersPerPixel(lat, plan.zoom);
+
+  // « contain » : l'image remplit la case sans jamais être déformée
+  const hpx = mapEl?.clientHeight ?? Math.round(mapWidthPx / target);
+  const scale = Math.min(MAP.w / widthPx, MAP.maxH / hpx);
+  const imgW = widthPx * scale;
+  const imgH = hpx * scale;
   const imgX = MAP.x + (MAP.w - imgW) / 2;
+  const metersPerMm = groundMeters / imgW;
   if (png) {
     doc.addImage(png, 'JPEG', imgX, MAP.y, imgW, imgH, undefined, 'FAST');
   } else {

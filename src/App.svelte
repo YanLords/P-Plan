@@ -143,8 +143,9 @@
           class="site"
           bind:value={store.plan.site}
           spellcheck="false"
-          placeholder="Site, commune, lieu-dit…"
-          aria-label="Site du tir"
+          placeholder="Lieu : ville, adresse, lieu-dit…"
+          aria-label="Lieu du spectacle (ville, adresse)"
+          title="Lieu du spectacle — ville et adresse imprimées sur le plan"
         />
       </div>
       <label class="date">

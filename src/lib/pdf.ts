@@ -9,14 +9,12 @@ import {
   ringArea,
   ringLength,
   scaleBarLength,
-  scaleDenominator,
 } from './geo';
 
-// A4 paysage, tout sur une page : bandeau titre, carte + cartouche, légende, pied.
+// A4 paysage, tout sur une page : carte + cartouche en haut, légende en bas, pied.
 const FRAME = { x: 8, y: 8, w: 281, h: 194 };
-const HEAD = { y: 20 }; // filet sous le bandeau titre
-const MAP = { x: 8, y: HEAD.y, w: 186, h: 122 };
-const BOX = { x: 194, y: HEAD.y, w: 95, h: 122 };
+const MAP = { x: 8, y: FRAME.y, w: 186, h: 134 };
+const BOX = { x: 194, y: FRAME.y, w: 95, h: 134 };
 const LEG = { x: 8, w: 281, bottom: 195 };
 const FOOT_Y = 199;
 
@@ -27,10 +25,6 @@ const RULE: [number, number, number] = [184, 184, 184];
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '');
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-}
-
-function kindCount(plan: Plan, kind: PElement['kind']) {
-  return plan.elements.filter((e) => e.kind === kind).length;
 }
 
 async function capture(mapEl: HTMLElement, boost?: (on: boolean) => void): Promise<string | null> {
@@ -183,7 +177,7 @@ function cityOf(site: string): string {
 }
 
 /** Cartouche « schéma de mise en œuvre » : blocs empilés façon cartouche de plan. */
-function drawCartouche(doc: jsPDF, plan: Plan, denom: number, h: number): void {
+function drawCartouche(doc: jsPDF, plan: Plan, metersPerMm: number, h: number): void {
   const x = BOX.x;
   const w = BOX.w;
   const cx = x + w / 2;
@@ -200,7 +194,7 @@ function drawCartouche(doc: jsPDF, plan: Plan, denom: number, h: number): void {
   doc.text('SCHÉMA DE MISE EN ŒUVRE', cx, BOX.y + 6.6, { align: 'center' });
   boxRule(doc, BOX.y + 10.5);
 
-  // 2. spectacle / ville / site / date
+  // 2. lieu : ville en gros, adresse/commune complète, date
   let y = BOX.y + 15;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.4);
@@ -213,13 +207,13 @@ function drawCartouche(doc: jsPDF, plan: Plan, denom: number, h: number): void {
   doc.setTextColor(...INK);
   doc.text(fitText(doc, cityOf(plan.site), w - 8), cx, y, { align: 'center' });
 
-  y += 5.2;
+  y += 5.4;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.4);
+  doc.setFontSize(7);
   doc.setTextColor(...MUTED);
-  if (plan.site) doc.text(fitText(doc, plan.site, w - 8), cx, y, { align: 'center' });
+  doc.text(fitText(doc, plan.site || 'Lieu non renseigné', w - 8), cx, y, { align: 'center' });
 
-  y += 4.4;
+  y += 4.6;
   doc.setFontSize(7);
   doc.setTextColor(...INK);
   doc.text(
@@ -228,58 +222,54 @@ function drawCartouche(doc: jsPDF, plan: Plan, denom: number, h: number): void {
     y,
     { align: 'center' }
   );
-  boxRule(doc, BOX.y + 35);
+  boxRule(doc, BOX.y + 36);
 
-  // 3. échelle + date d'étude (deux cases)
+  // 3. échelle mesurable + date d'étude (deux cases)
   const half = w / 2;
+  const leftCx = x + half / 2;
   doc.setDrawColor(...RULE);
   doc.setLineWidth(0.12);
-  doc.line(x + half, BOX.y + 35, x + half, BOX.y + 51);
+  doc.line(x + half, BOX.y + 36, x + half, BOX.y + 54);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6);
   doc.setTextColor(...MUTED);
-  doc.text('Échelle', x + half / 2, BOX.y + 39, { align: 'center' });
-  doc.text("Date d'étude", x + half * 1.5, BOX.y + 39, { align: 'center' });
+  doc.text('Échelle', leftCx, BOX.y + 40, { align: 'center' });
+  doc.text("Date d'étude", x + half * 1.5, BOX.y + 40, { align: 'center' });
+
+  // barre cotée à sa longueur réelle sur le papier : seul repère d'échelle du plan
+  const bar = scaleBarLength(metersPerMm, 38);
+  if (bar.meters) {
+    const by = BOX.y + 48.5;
+    const bx = leftCx - bar.mm / 2;
+    doc.setDrawColor(...INK);
+    doc.setLineWidth(0.2);
+    doc.line(bx, by, bx + bar.mm, by);
+    doc.setFillColor(...INK);
+    for (const [px, dir] of [
+      [bx, 1],
+      [bx + bar.mm, -1],
+    ] as [number, number][]) {
+      doc.triangle(px, by, px + 1.8 * dir, by - 0.9, px + 1.8 * dir, by + 0.9, 'F');
+    }
+    // graduation médiane
+    doc.setDrawColor(...MUTED);
+    doc.setLineWidth(0.12);
+    doc.line(bx + bar.mm / 2, by - 0.9, bx + bar.mm / 2, by + 0.9);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.4);
+    doc.setTextColor(...INK);
+    doc.text(`${formatMeters(bar.meters)} m`, leftCx, by + 4.2, { align: 'center' });
+  }
+
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(...INK);
-  doc.text(denom ? `1:${denom.toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ')}` : '—', x + half / 2, BOX.y + 44, { align: 'center' });
   doc.setFontSize(7);
-  doc.text(new Date().toLocaleDateString('fr-FR'), x + half * 1.5, BOX.y + 44, { align: 'center' });
+  doc.setTextColor(...INK);
+  doc.text(new Date().toLocaleDateString('fr-FR'), x + half * 1.5, BOX.y + 47, { align: 'center' });
+  boxRule(doc, BOX.y + 54);
 
-  // flèche « <---m---> » sous l'échelle
-  doc.setDrawColor(...MUTED);
-  doc.setLineWidth(0.12);
-  const ax = x + half / 2 - 6;
-  doc.line(ax, BOX.y + 48, ax + 12, BOX.y + 48);
-  doc.triangle(ax, BOX.y + 48, ax + 1.8, BOX.y + 47.2, ax + 1.8, BOX.y + 48.8, 'F');
-  doc.triangle(ax + 12, BOX.y + 48, ax + 10.2, BOX.y + 47.2, ax + 10.2, BOX.y + 48.8, 'F');
-  doc.setFillColor(...INK);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(5.6);
-  doc.setTextColor(...MUTED);
-  doc.text('m', cx - half / 2, BOX.y + 46.6, { align: 'center' });
-  boxRule(doc, BOX.y + 51);
-
-  // 4. statistiques du plan
-  const meters = plan.elements.reduce((acc, e) => acc + (e.ring && !isZone(e.kind) ? ringLength(e.ring) : 0), 0);
-  let sy = BOX.y + 56;
-  statRow(doc, sy, 'Artifices', String(kindCount(plan, 'artifice')));
-  sy += 5.6;
-  statRow(doc, sy, 'DS maximale', `${Math.round(plan.elements.reduce((m, e) => Math.max(m, e.ds ?? 0), 0))} m`);
-  sy += 5.6;
-  statRow(doc, sy, 'Barriérage', `${formatMeters(meters)} m`);
-  sy += 5.6;
-  statRow(doc, sy, 'Zone public', String(kindCount(plan, 'zone_public')));
-  sy += 5.6;
-  statRow(doc, sy, 'Zones perso', String(kindCount(plan, 'zone_perso')));
-  sy += 5.6;
-  statRow(
-    doc,
-    sy,
-    'Autres éléments',
-    String(plan.elements.length - kindCount(plan, 'artifice') - kindCount(plan, 'zone_perso') - kindCount(plan, 'zone_public'))
-  );
+  // 4. seule valeur conservée : la distance de sécurité maximale
+  const maxDs = Math.round(plan.elements.reduce((m, e) => Math.max(m, e.ds ?? 0), 0));
+  statRow(doc, BOX.y + 60, 'DS maximale', `${maxDs} m`);
 
   // 5. pied de cartouche : GPS + édition
   const fy = BOX.y + h - 10.4;
@@ -307,34 +297,6 @@ function drawCartouche(doc: jsPDF, plan: Plan, denom: number, h: number): void {
   );
 }
 
-/** Barre d'échelle « ronde » dessinée sur la carte. */
-function drawScaleBar(doc: jsPDF, metersPerMm: number, x: number, y: number, maxMm = 36): void {
-  const bar = scaleBarLength(metersPerMm, maxMm);
-  if (!bar.meters) return;
-  const segs = 4;
-  const segW = bar.mm / segs;
-  const h = 1.4;
-
-  // fond blanc : la barre reste lisible sur la carte
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(...RULE);
-  doc.setLineWidth(0.1);
-  doc.rect(x - 1.5, y - 4.6, bar.mm + 3, 8, 'FD');
-
-  for (let i = 0; i < segs; i++) {
-    if (i % 2 === 0) doc.setFillColor(INK[0], INK[1], INK[2]);
-    else doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(...INK);
-    doc.setLineWidth(0.15);
-    doc.rect(x + i * segW, y, segW, h, 'FD');
-  }
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(5);
-  doc.setTextColor(...INK);
-  doc.text('0', x, y - 1.4);
-  doc.text(`${formatMeters(bar.meters)} m`, x + bar.mm, y - 1.4, { align: 'right' });
-}
-
 /** Flèche du nord. */
 function drawNorth(doc: jsPDF, x: number, y: number): void {
   doc.setFillColor(255, 255, 255);
@@ -360,27 +322,8 @@ export async function buildPdf(
   const [lat, lng] = plan.center;
   const groundMeters = mapWidthPx * metersPerPixel(lat, plan.zoom);
   const metersPerMm = groundMeters / MAP.w;
-  const denom = scaleDenominator(groundMeters, MAP.w);
 
   drawFrame(doc);
-
-  // ---- Bandeau titre
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.setTextColor(...INK);
-  doc.text(fitText(doc, plan.titre, 190), FRAME.x + 2, 15.5);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(...MUTED);
-  doc.text(
-    new Date(`${plan.date}T12:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }),
-    FRAME.x + FRAME.w - 2,
-    15.5,
-    { align: 'right' }
-  );
-  doc.setDrawColor(...RULE);
-  doc.setLineWidth(0.15);
-  doc.line(FRAME.x + 1.2, HEAD.y, FRAME.x + FRAME.w - 1.2, HEAD.y);
 
   // ---- Carte : hauteur déduite du cadrage réel (pas de bandes blanches)
   const png = mapEl ? await capture(mapEl, boost) : null;
@@ -401,11 +344,10 @@ export async function buildPdf(
   doc.setLineWidth(0.15);
   doc.rect(MAP.x, MAP.y, MAP.w, imgH);
 
-  drawScaleBar(doc, metersPerMm, MAP.x + 5, MAP.y + imgH - 3);
   drawNorth(doc, MAP.x + MAP.w - 8, MAP.y + 8);
 
   // ---- Cartouche (même hauteur que la carte : la légende reste sous les deux)
-  drawCartouche(doc, plan, denom, boxH);
+  drawCartouche(doc, plan, metersPerMm, boxH);
 
   // ---- Légende : 3 colonnes, police réduite tant que ça tient sur la page
   if (plan.elements.length) {

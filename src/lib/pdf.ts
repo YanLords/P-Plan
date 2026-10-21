@@ -166,11 +166,16 @@ function legendRow(
   icon: string | null,
   fontPt: number
 ): void {
-  if (icon) {
+  const [cr, cg, cb] = hexToRgb(row.color);
+  if (KIND_META[row.kind].shape === 'line') {
+    // barriérage : le trait orange lui-même, comme sur le plan
+    doc.setDrawColor(cr, cg, cb);
+    doc.setLineWidth(0.9);
+    doc.line(x, y - 0.7, x + 3.4, y - 0.7);
+  } else if (icon) {
     doc.addImage(icon, 'PNG', x, y - 2.9, 3.4, 3.4, undefined, 'FAST');
   } else {
-    const [r, g, b] = hexToRgb(row.color);
-    doc.setFillColor(r, g, b);
+    doc.setFillColor(cr, cg, cb);
     doc.roundedRect(x, y - 2.4, 2.8, 2.8, 0.8, 0.8, 'F');
   }
   const tx = x + 4.8;

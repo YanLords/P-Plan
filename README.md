@@ -1,7 +1,6 @@
 # Planete Plan
 
-Générateur **local** de plans de disposition de feux d'artifice — équivalent de
-[PlanFeu](https://planfeu.jacques-prevot.fr/web/) (Jacques Prevot Artifices), sans compte,
+Générateur **local** de plans de disposition de feux d'artifice, sans compte,
 sans serveur, sans envoi de données. Cartographie du site de tir, placement des éléments,
 distances de sécurité, export PDF A4.
 

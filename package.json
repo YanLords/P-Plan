@@ -1,7 +1,7 @@
 {
   "name": "plan-de-feu",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Plan de feu — générateur local de plans de disposition de feux d'artifice",
   "scripts": {

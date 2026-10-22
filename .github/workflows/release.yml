@@ -77,8 +77,24 @@ jobs:
           gh release view "$TAG" --repo "$PUBLIC_REPO" >/dev/null 2>&1 || \
             gh release create "$TAG" --repo "$PUBLIC_REPO" --title "Planete Plan $TAG" --notes "Binaires et manifeste de mise à jour de Planete Plan $TAG."
           # le chemin dépend de la cible (--target xxx => target/<triple>/release/bundle)
+          STAGE=$(mktemp -d)
           find src-tauri/target -type f -path '*bundle*' \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.sig' -o -name '*.exe' -o -name '*.msi' -o -name '*.nsis.zip' \) \
-            -not -name 'rw.*' -not -name '*.dmg.sig' -exec gh release upload "$TAG" --repo "$PUBLIC_REPO" {} --clobber \;
+            -not -name 'rw.*' -not -name '*.dmg.sig' -exec cp {} "$STAGE"/ \;
+          # macOS : l'archive de mise à jour porte le même nom pour les deux arches,
+          # on la suffixe pour ne pas écraser l'une avec l'autre
+          ARCH=""
+          case "${{ matrix.args }}" in
+            *aarch64-apple-darwin*) ARCH=aarch64 ;;
+            *x86_64-apple-darwin*) ARCH=x64 ;;
+          esac
+          if [ -n "$ARCH" ] && [ -f "$STAGE/Plan de feu.app.tar.gz" ]; then
+            mv "$STAGE/Plan de feu.app.tar.gz" "$STAGE/Plan de feu_$ARCH.app.tar.gz"
+            if [ -f "$STAGE/Plan de feu.app.tar.gz.sig" ]; then
+              mv "$STAGE/Plan de feu.app.tar.gz.sig" "$STAGE/Plan de feu_$ARCH.app.tar.gz.sig"
+            fi
+          fi
+          ls -l "$STAGE"
+          gh release upload "$TAG" --repo "$PUBLIC_REPO" "$STAGE"/* --clobber
 
   manifest:
     needs: release

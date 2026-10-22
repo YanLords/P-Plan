@@ -43,7 +43,15 @@
     "copyright": "Artifeu",
     "category": "Utility",
     "shortDescription": "Plans de disposition de feux d'artifice",
-    "longDescription": "Générateur local de plans de disposition de feux d'artifice : carte, artifices et distances de sécurité, barriérages, zone public, points de secours, export PDF."
+    "longDescription": "Générateur local de plans de disposition de feux d'artifice : carte, artifices et distances de sécurité, barriérages, zone public, points de secours, export PDF.",
+    "createUpdaterArtifacts": true
   },
-  "plugins": {}
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY1NDRDOTdDQkExQTNBNkIKUldSck9ocTZmTWxFWlU4a1RnVEE0bE0rc3BkMTBnaFJtN29kK2QyaE5MVU9SSi9vZE5tU2UzeHgK",
+      "endpoints": [
+        "https://github.com/YanLords/P-Plan/releases/latest/download/latest.json"
+      ]
+    }
+  }
 }

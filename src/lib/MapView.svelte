@@ -4,7 +4,7 @@
   import 'leaflet/dist/leaflet.css';
   import { store } from './store.svelte';
   import { settings } from './settings.svelte';
-  import { KIND_META, kindIcon, colorOf, isShape, isZone, TOOL_ORDER, type PElement } from './elements';
+  import { KIND_META, RULER, colorOf, isKindTool, isShape, isZone, kindIcon, TOOL_ORDER, type PElement } from './elements';
   import { destinationPoint, formatMeters, haversine, ringLength, snapDistance } from './geo';
   import { kindCursor } from './cursors';
   import { searchPlaces, type Place } from './geocode';
@@ -14,6 +14,10 @@
   let map: L.Map | null = null;
   let overlay: L.LayerGroup | null = null;
   let draftGroup: L.LayerGroup | null = null;
+  let measureLine: L.Polyline | null = null;
+  let measureTip: L.Tooltip | null = null;
+  let measureFrom: L.LatLng | null = null;
+  let measureMoved = false;
   let baseKey: 'osm' | 'sat' | null = null;
   let baseLayer: L.TileLayer | null = null;
 
@@ -166,7 +170,7 @@
         const isSortie = e.kind === 'sortie';
         const shape = isZone(e.kind)
           ? L.polygon(e.ring, { color, weight: baseW, fillColor: color, fillOpacity: 0.12 })
-          : L.polyline(e.ring, { color, weight: baseW, dashArray: isSortie ? undefined : '7 5' });
+          : L.polyline(e.ring, { color, weight: baseW });
         shape.addTo(overlay!).on('click', () => store.select(e.id));
         strokes.push({ layer: shape, base: baseW });
 
@@ -179,8 +183,8 @@
             zIndexOffset: 350,
           }).addTo(overlay!);
         }
-        // barrière : longueur survolée = métrage à couvrir
-        if (!isZone(e.kind) && e.ring) {
+        // barrière : longueur survolée = métrage à couvrir (pas pour une voie de sortie)
+        if (e.kind === 'barrierage' && e.ring) {
           shape.bindTooltip(`${formatMeters(ringLength(e.ring))} m`, {
             sticky: true,
             direction: 'top',
@@ -296,9 +300,10 @@
     draftGroup = L.layerGroup().addTo(map);
     const pts = store.draft;
     if (!pts.length) return;
-    const isZoneDraft = store.tool !== 'select' && isZone(store.tool);
-    const toolColor =
-      store.tool === 'select' ? KIND_META.zone_perso.color : KIND_META[store.tool].color;
+    const isZoneDraft = isKindTool(store.tool) && isZone(store.tool);
+    const toolColor = !isKindTool(store.tool)
+      ? KIND_META.zone_perso.color
+      : KIND_META[store.tool].color;
     if (pts.length > 1) {
       (isZoneDraft
         ? L.polygon(pts, { color: toolColor, weight: 2, dashArray: '6 4', fillOpacity: 0.1 })
@@ -337,12 +342,55 @@
     if (map) ensureBase(store.plan.base);
   });
 
+  /** Règle : trait + bulle de distance, hors plan (jamais enregistré). */
+  function clearMeasure() {
+    measureLine?.remove();
+    measureTip?.remove();
+    measureLine = null;
+    measureTip = null;
+    measureFrom = null;
+    measureMoved = false;
+  }
+
+  function drawMeasure(from: L.LatLng, to: L.LatLng) {
+    if (!map) return;
+    const pts = [from, to];
+    if (!measureLine) {
+      measureLine = L.polyline(pts, {
+        color: RULER.color,
+        weight: 2,
+        dashArray: '5 4',
+        interactive: false,
+      }).addTo(map);
+    } else {
+      measureLine.setLatLngs(pts);
+    }
+    const mid = L.latLng((from.lat + to.lat) / 2, (from.lng + to.lng) / 2);
+    const label = `${formatMeters(map.distance(from, to))} m`;
+    if (!measureTip) {
+      // setLatLng avant addTo : un tooltip sans position ne peut pas être ajouté à la carte
+      measureTip = L.tooltip({ permanent: true, direction: 'top', opacity: 0.95 })
+        .setLatLng(mid)
+        .addTo(map);
+    }
+    measureTip.setLatLng(mid).setContent(label);
+  }
+
+  // quitter l'outil efface la mesure en cours
+  $effect(() => {
+    if (store.tool !== 'regle') clearMeasure();
+  });
+
   // le curseur prend l'apparence de l'outil sélectionné
   $effect(() => {
     const tool = store.tool;
     if (!el) return;
     if (tool === 'select') {
       el.style.cursor = '';
+      return;
+    }
+    if (tool === 'regle') {
+      el.style.cursor = 'crosshair';
       return;
     }
     let cancelled = false;
@@ -379,10 +427,42 @@
     m.on('click', (ev: L.LeafletMouseEvent) => {
       const at: [number, number] = [ev.latlng.lat, ev.latlng.lng];
       places = [];
-      if (store.tool !== 'select' && isShape(store.tool)) store.addVertex(at);
-      else if (store.tool !== 'select') store.addPoint(store.tool, at);
+      if (isKindTool(store.tool) && isShape(store.tool)) store.addVertex(at);
+      else if (isKindTool(store.tool)) store.addPoint(store.tool, at);
       else store.select(null);
     });
+
+    // ---- Règle : glisser du point de départ au point d'arrivée
+    const endMeasure = () => {
+      if (!measureFrom) return;
+      window.removeEventListener('mouseup', endMeasure);
+      m.dragging.enable(); // sinon la carte se déplace au lieu de mesurer
+      // un simple clic (aucun déplacement) efface la mesure
+      if (!measureMoved) clearMeasure();
+      measureFrom = null;
+      measureMoved = false;
+    };
+
+    m.on('mousedown', (ev: L.LeafletMouseEvent) => {
+      if (store.tool !== 'regle') return;
+      clearMeasure();
+      measureFrom = ev.latlng;
+      m.dragging.disable();
+      window.addEventListener('mouseup', endMeasure);
+    });
+
+    m.on('mousemove', (ev: L.LeafletMouseEvent) => {
+      if (!measureFrom || store.tool !== 'regle') return;
+      measureMoved = true;
+      drawMeasure(measureFrom, ev.latlng);
+    });
+
+    m.on('mouseup', endMeasure);
+
+    const onMeasureKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') clearMeasure();
+    };
+    window.addEventListener('keydown', onMeasureKey);
 
     m.on('dblclick', () => {
       if (store.draft.length > 1) store.finishDraft();
@@ -391,6 +471,7 @@
     map = m;
     setTimeout(() => m.invalidateSize(), 0);
     return () => {
+      window.removeEventListener('keydown', onMeasureKey);
       m.remove();
       map = null;
       overlay = null;
@@ -400,13 +481,17 @@
     };
   });
 
-  const shaping = $derived(store.tool !== 'select' && isShape(store.tool));
+  const shaping = $derived(isKindTool(store.tool) && isShape(store.tool));
   const hint = $derived(
-    store.tool === 'select'
-      ? 'Cliquez un élément pour l’éditer · glissez pour déplacer'
-      : shaping
-        ? 'Cliquez les sommets · Entrée pour terminer'
-        : `Cliquez sur la carte pour placer : ${KIND_META[store.tool].label}`
+    store.tool === 'regle'
+      ? 'Glissez pour mesurer une distance · Échap pour effacer'
+      : store.tool === 'select'
+        ? 'Cliquez un élément pour l’éditer · glissez pour déplacer'
+        : shaping
+          ? 'Cliquez les sommets · Entrée pour terminer'
+          : isKindTool(store.tool)
+            ? `Cliquez sur la carte pour placer : ${KIND_META[store.tool].label}`
+            : ''
   );
   // ---- Recherche de lieu : suggestions au fil de la saisie
   let q = $state('');
@@ -545,7 +630,7 @@
       <span>{store.draft.length} point{store.draft.length > 1 ? 's' : ''}</span>
       <button
         class="primary"
-        disabled={store.draft.length < (store.tool !== 'select' && isZone(store.tool) ? 3 : 2)}
+        disabled={store.draft.length < (isKindTool(store.tool) && isZone(store.tool) ? 3 : 2)}
         onclick={() => store.finishDraft()}
       >
         Terminer

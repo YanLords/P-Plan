@@ -313,10 +313,10 @@ function drawCartouche(
 
   // titre
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10.8 * fs);
+  doc.setFontSize(14 * fs);
   doc.setTextColor(...INK);
-  doc.text('SCHÉMA DE MISE EN ŒUVRE', cx, at(6.6), { align: 'center' });
-  boxRule(doc, at(10.4));
+  doc.text('SCHÉMA DE MISE EN ŒUVRE', cx, at(7.4), { align: 'center' });
+  boxRule(doc, at(11.6));
 
   // lieu : ville en gros, adresse complète, date
   doc.setFont('helvetica', 'normal');

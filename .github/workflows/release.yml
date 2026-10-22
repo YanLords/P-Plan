@@ -67,6 +67,7 @@ jobs:
           args: ${{ matrix.args }}
 
       - name: Publier dans le dépôt public des releases
+        shell: bash
         env:
           PUBLIC_REPO: YanLords/plan-de-feu-releases
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
@@ -86,6 +87,7 @@ jobs:
       contents: read
     steps:
       - name: Manifeste latest.json du dépôt public
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           PUBLIC_REPO: YanLords/plan-de-feu-releases

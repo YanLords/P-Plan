@@ -4,6 +4,7 @@
   import Legend from './lib/Legend.svelte';
   import PanelProps from './lib/PanelProps.svelte';
   import SettingsPanel from './lib/SettingsPanel.svelte';
+  import UpdateToast from './lib/UpdateToast.svelte';
   import { store } from './lib/store.svelte';
   import { LS_KEY } from './lib/store.svelte';
   import { settings } from './lib/settings.svelte';
@@ -26,9 +27,11 @@
     document.documentElement.style.zoom = String(settings.value.uiScale);
   });
 
-  // version installée + recherche silencieuse de mise à jour au démarrage
+  // version installée + recherche silencieuse au démarrage, puis toutes les 4 h
   onMount(() => {
     updater.init().then(() => updater.check(true));
+    const id = setInterval(() => updater.check(true), 4 * 60 * 60 * 1000);
+    return () => clearInterval(id);
   });
 
   // autosave + point de retour undo (debounce) : tout changement du plan est persisté localement
@@ -201,6 +204,7 @@
       {#if showSettings}
         <SettingsPanel onClose={() => (showSettings = false)} />
       {/if}
+      <UpdateToast />
       {#if busy}
         <div class="busy">Génération du PDF…</div>
       {/if}

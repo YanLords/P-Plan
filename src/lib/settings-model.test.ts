@@ -23,11 +23,11 @@ test('raccourcis par défaut : ceux de la spécification', () => {
     zone_perso: 'z',
     barrierage: 'b',
     sortie: 'o',
-    acces_secours: 's',
     accueil_secours: 'q',
     point_eau: 'e',
     extincteur: 'w',
-    echelle: 'x',
+    son: 's',
+    bateau: 'f',
     surveillance: 'g',
     marqueur: 'm',
   });
@@ -86,7 +86,7 @@ test('sanitizeSettings : données corrompues -> défauts, champs valides conserv
   assert.equal(custom.shortcuts.select, '', 'touche volontairement vidée conservée');
   assert.equal(custom.shortcuts.artifice, 'k');
   assert.equal(custom.shortcuts.marqueur, 'm', 'touche invalide -> défaut');
-  assert.equal(custom.shortcuts.echelle, 'x');
+  assert.equal(custom.shortcuts.son, 's');
 });
 
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';

@@ -6,11 +6,11 @@ export type Kind =
   | 'sortie'
   | 'zone_public'
   | 'zone_perso'
-  | 'acces_secours'
   | 'accueil_secours'
   | 'point_eau'
   | 'extincteur'
-  | 'echelle'
+  | 'son'
+  | 'bateau'
   | 'surveillance'
   | 'marqueur';
 
@@ -26,8 +26,10 @@ export interface PElement {
   calibre?: number | null;
   /** distance de sécurité en mètres */
   ds?: number | null;
-  /** couleur personnalisée (zones perso, marqueurs) */
+  /** couleur personnalisée (zone artifice, zones, marqueurs) */
   color?: string;
+  /** zone affichée en simple icône : le tracé reste enregistré */
+  pointMode?: boolean;
   notes?: string;
 }
 
@@ -49,14 +51,14 @@ export const KIND_META: Record<
 > = {
   artifice: { label: 'Artifice', color: '#FCA04B', shape: 'point' },
   barrierage: { label: 'Barriérage', color: '#FF9500', shape: 'line' },
-  sortie: { label: 'Voie de sortie', color: '#E03131', shape: 'line' },
+  sortie: { label: 'Voie accès secours', color: '#E03131', shape: 'line' },
   zone_public: { label: 'Zone public', color: '#2F80ED', shape: 'zone' },
   zone_perso: { label: 'Zone perso', color: '#8E5CF7', shape: 'zone' },
-  acces_secours: { label: 'Accès secours', color: '#34C759', shape: 'point' },
   accueil_secours: { label: 'Accueil secours', color: '#34C759', shape: 'point' },
   point_eau: { label: "Point d'eau", color: '#0A84FF', shape: 'point' },
   extincteur: { label: 'Extincteur', color: '#FF3B30', shape: 'point' },
-  echelle: { label: 'Échelle', color: '#8E8E93', shape: 'point' },
+  son: { label: 'Son', color: '#0B7285', shape: 'point' },
+  bateau: { label: 'Fond de bateau', color: '#4A6C8C', shape: 'zone' },
   surveillance: { label: 'Agent de surveillance', color: '#B5179E', shape: 'point' },
   marqueur: { label: 'Marqueur', color: '#1A1A1A', shape: 'point' },
 };
@@ -68,12 +70,12 @@ export const TOOL_ORDER: Kind[] = [
   'zone_perso',
   'barrierage',
   'sortie',
-  'acces_secours',
   'accueil_secours',
   'point_eau',
   'extincteur',
-  'echelle',
+  'son',
   'surveillance',
+  'bateau',
   'marqueur',
 ];
 
@@ -86,12 +88,13 @@ const PATHS: Record<Kind, string> = {
     '<circle cx="9" cy="8" r="2.6"/><path d="M3.6 19.5a5.4 5.4 0 0 1 10.8 0"/><circle cx="17" cy="9.2" r="2"/><path d="M16.2 19.5a4.6 4.6 0 0 1 4.4-4.4"/>',
   zone_perso:
     '<path d="M12 3.2 19.6 7.6v8.8L12 20.8 4.4 16.4V7.6z"/><path d="M12 9.2v5.6" stroke-dasharray="2 2"/>',
-  acces_secours: '<path d="M4 12h10"/><path d="M11 7.5 16 12l-5 4.5"/><path d="M3 5.5v13"/>',
   accueil_secours: '<circle cx="12" cy="12" r="8.6"/><path d="M12 7.8v8.4M7.8 12h8.4"/>',
   point_eau: '<path d="M12 2.8 6.4 8.4a8 8 0 1 0 11.2 0z"/>',
   extincteur:
     '<path d="M8.2 8h5.8a2 2 0 0 1 2 2v9.2a1.8 1.8 0 0 1-1.8 1.8H8a1.8 1.8 0 0 1-1.8-1.8V10a2 2 0 0 1 2-2z"/><path d="M9 8V5.2h6"/><path d="M6.2 8V6.2h6.6"/><path d="M16 11.4h2.6"/>',
-  echelle: '<path d="M7 2.5v19M17 2.5v19M7 6.5h10M7 11h10M7 15.5h10"/>',
+  son: '<path d="M11 4.7 6.2 8.6H2.6v6.8h3.6L11 19.3z"/><path d="M15.4 8.6a4.8 4.8 0 0 1 0 6.8"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/>',
+  bateau:
+    '<path d="M3.4 14.2h17.2l-2.1 4.1a1.7 1.7 0 0 1-1.5.9H7a1.7 1.7 0 0 1-1.5-.9z"/><path d="M12 14.2V4.6"/><path d="m12 5.6 4.6 2.9H12z"/><path d="M12 8.5H7.8L12 5.9z"/>',
   surveillance:
     '<path d="M2.2 12s3.7-7 9.8-7 9.8 7 9.8 7-3.7 7-9.8 7-9.8-7-9.8-7z"/><circle cx="12" cy="12" r="2.9"/>',
   marqueur:
@@ -123,6 +126,21 @@ export const isZone = (kind: Kind) => KIND_META[kind].shape === 'zone';
 
 /** barriérage ou zone : éléments tracés au clic (pas un simple point). */
 export const isShape = (kind: Kind) => KIND_META[kind].shape !== 'point';
+
+/** Élément de fond (bateau) : dessiné sous les autres, jamais devant. */
+export const isFond = (kind: Kind) => kind === 'bateau';
+
+/** Types encore connus : sert à écarter les éléments d'anciens plans. */
+export const KNOWN_KINDS = Object.keys(KIND_META) as Kind[];
+
+/** Un plan relu peut venir d'une version antérieure : on écarte les types disparus. */
+export function sanitizePlan(p: Plan): Plan {
+  return {
+    ...p,
+    site: String(p.site ?? ''),
+    elements: (p.elements ?? []).filter((el) => !!el && KNOWN_KINDS.includes(el.kind)),
+  };
+}
 
 /** couleur effective d'un élément (couleur perso prioritaire). */
 export const colorOf = (e: { kind: Kind; color?: string }) => e.color || KIND_META[e.kind].color;

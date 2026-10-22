@@ -138,11 +138,10 @@ function detailOf(e: PElement): string {
     return d.join(' · ');
   }
   if (e.ring?.length) {
-    d.push(
-      isZone(e.kind)
-        ? `${formatMeters(ringLength(e.ring, true))} m · ${formatMeters(ringArea(e.ring))} m²`
-        : `${formatMeters(ringLength(e.ring))} m`
-    );
+    // la longueur n'a de sens que pour un barriérage (métrage à prévoir) :
+    // ni zone (aire) ni voie de sortie (simple itinéraire)
+    if (isZone(e.kind)) d.push(`${formatMeters(ringLength(e.ring, true))} m · ${formatMeters(ringArea(e.ring))} m²`);
+    else if (e.kind === 'barrierage') d.push(`${formatMeters(ringLength(e.ring))} m`);
   }
   return d.join(' · ');
 }

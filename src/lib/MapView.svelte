@@ -183,8 +183,8 @@
             zIndexOffset: 350,
           }).addTo(overlay!);
         }
-        // barrière : longueur survolée = métrage à couvrir
-        if (!isZone(e.kind) && e.ring) {
+        // barrière : longueur survolée = métrage à couvrir (pas pour une voie de sortie)
+        if (e.kind === 'barrierage' && e.ring) {
           shape.bindTooltip(`${formatMeters(ringLength(e.ring))} m`, {
             sticky: true,
             direction: 'top',

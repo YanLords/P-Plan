@@ -60,7 +60,9 @@
             )} m²
           </span>
         {:else}
-          <span class="measure">Longueur à couvrir : <b>{formatMeters(ringLength(el.ring))} m</b></span>
+          {#if el.kind === 'barrierage'}
+            <span class="measure">Longueur à couvrir : <b>{formatMeters(ringLength(el.ring))} m</b></span>
+          {/if}
           <span>{el.ring.length} sommets</span>
         {/if}
         <span class="hint">glissez les poignées sur la carte</span>

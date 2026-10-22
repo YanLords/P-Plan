@@ -151,6 +151,8 @@ interface LegRow {
   color: string;
   label: string;
   details: string;
+  /** note libre saisie sur l'élément, imprimée sous sa ligne de légende */
+  note: string;
 }
 
 /** Lignes de légende : les équipements répétés sont fusionnés en une seule entrée. */
@@ -163,7 +165,11 @@ function legendRowsFor(plan: Plan): LegRow[] {
     if (MERGED.includes(e.kind)) {
       if (seen.has(e.kind)) continue;
       seen.add(e.kind);
-      rows.push({ kind: e.kind, color, label: meta.label, details: '' });
+      const mergedNotes = plan.elements
+        .filter((other) => other.kind === e.kind)
+        .map((other) => (other.notes ?? '').trim())
+        .filter(Boolean);
+      rows.push({ kind: e.kind, color, label: meta.label, details: '', note: mergedNotes.join(' · ') });
       continue;
     }
     const label =
@@ -172,7 +178,13 @@ function legendRowsFor(plan: Plan): LegRow[] {
         : e.label && e.label !== meta.label
           ? `${meta.label} — ${e.label}`
           : meta.label;
-    rows.push({ kind: e.kind, color, label, details: e.kind === 'marqueur' ? '' : detailOf(e) });
+    rows.push({
+      kind: e.kind,
+      color,
+      label,
+      details: e.kind === 'marqueur' ? '' : detailOf(e),
+      note: (e.notes ?? '').trim(),
+    });
   }
   return rows;
 }
@@ -492,67 +504,65 @@ export async function buildPdf(
     doc.setLineWidth(0.12);
     doc.line(LEG.x, bandY + 8, LEG.x + LEG.w, bandY + 8);
 
-    // notes libres saisies sur les éléments : imprimées sous la légende
-    const notes = plan.elements
-      .map((el, i) => ({ n: i + 1, label: KIND_META[el.kind].label, text: (el.notes ?? '').trim() }))
-      .filter((note) => note.text);
-    const noteStep = 2.5;
-    const notesH = notes.length ? 4.6 + notes.length * noteStep : 0;
-
+    const noteStep = 2.4; // interligne de la note sous sa ligne
     // 2 colonnes, police réduite tant que ça tient
     const top = bandY + 12.4;
     const inner = LEG.w - 4;
     const colW = inner / 2;
     const colX = [LEG.x, LEG.x + colW + 4];
-    const avail = LEG.bottom - top - notesH;
+    const avail = LEG.bottom - top;
+
+    // réparti en 2 colonnes de hauteur équilibrée (une note ajoute une ligne)
+    const layout = (step: number) => {
+      const heights = rows.map((r) => step + (r.note ? noteStep : 0));
+      const total = heights.reduce((sum, v) => sum + v, 0);
+      let col = 0;
+      let y = 0;
+      const placed: { row: LegRow; col: number; y: number }[] = [];
+      const maxY = [0, 0];
+      heights.forEach((h, i) => {
+        if (col === 0 && y + h > total / 2 && i > 0) {
+          col = 1;
+          y = 0;
+        }
+        placed.push({ row: rows[i], col, y });
+        y += h;
+        maxY[col] = Math.max(maxY[col], y);
+      });
+      return { placed, maxH: Math.max(maxY[0], maxY[1]) };
+    };
 
     let fontPt = 6.2;
-    let capacity = 0;
-    for (const f of [6.2, 5.8, 5.4, 5.0, 4.6]) {
-      capacity = Math.floor(avail / (f * 0.72));
+    let plan2 = layout(fontPt * 0.72);
+    for (const f of [5.8, 5.4, 5.0, 4.6]) {
+      if (plan2.maxH <= avail) break;
       fontPt = f;
-      if (capacity * 2 >= rows.length) break;
+      plan2 = layout(fontPt * 0.72);
     }
     const rowStep = fontPt * 0.72;
-    const perCol = Math.min(capacity, Math.ceil(rows.length / 2));
 
-    rows.forEach((r, i) => {
-      const col = Math.floor(i / perCol);
-      const line = i % perCol;
+    for (const { row, col, y } of plan2.placed) {
       if (col > 1) {
-        // ponytail: au-delà de ~2 colonnes on déborde sur une 2e page plutôt que d'inventer une mise en page
+        // ponytail: au-delà de 2 colonnes on déborde sur une 2e page
         doc.addPage('a4', 'landscape');
         drawFrame(doc);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(7);
         doc.setTextColor(...INK);
         doc.text(`LÉGENDE (suite) — ${plan.titre}`, LEG.x, 20);
-        return;
+        break;
       }
-      legendRow(doc, r, colX[col], top + line * rowStep + 2, colW, icons.get(`${r.kind}|${r.color}`) ?? null, fontPt);
-    });
-
-    if (notes.length) {
-      const ny = LEG.bottom - notesH + 3;
-      doc.setDrawColor(...RULE);
-      doc.setLineWidth(0.12);
-      doc.line(LEG.x, ny - 2.4, LEG.x + LEG.w, ny - 2.4);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.6);
-      doc.setTextColor(...INK);
-      doc.text('Notes', LEG.x, ny);
-      doc.setTextColor(...INK);
-      notes.forEach((note, i) => {
-        const ly2 = ny + (i + 1) * noteStep;
-        const lab = `${note.label} — `;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(5.8);
-        doc.text(lab, LEG.x + 12, ly2);
-        const lw = doc.getTextWidth(lab);
-        doc.setFont('helvetica', 'normal');
-        doc.text(fitText(doc, note.text, LEG.w - 14 - lw), LEG.x + 12 + lw, ly2);
-      });
+      const lineY = top + y + 2;
+      legendRow(doc, row, colX[col], lineY, colW, icons.get(`${row.kind}|${row.color}`) ?? null, fontPt);
+      if (row.note) {
+        // la note de l'élément, juste sous sa ligne
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(Math.max(4.4, fontPt - 0.8));
+        doc.setTextColor(60, 60, 60);
+        doc.text(fitText(doc, row.note, colW - 5), colX[col] + 4.6, lineY + noteStep);
+      }
     }
+
   }
 
   // ---- Pied de page

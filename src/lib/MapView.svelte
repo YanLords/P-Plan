@@ -48,6 +48,22 @@
     });
   }
 
+  /** Pointe de flèche orientée dans l'axe du dernier segment (voie de sortie). */
+  function arrowIcon(from: [number, number], to: [number, number], color: string): L.DivIcon {
+    let deg = 0;
+    if (map) {
+      const a = map.latLngToContainerPoint(from);
+      const b = map.latLngToContainerPoint(to);
+      deg = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+    }
+    return L.divIcon({
+      className: 'pf-arrow-wrap',
+      html: `<div class="pf-arrow" style="--c:${color};--rot:${deg}deg"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M21.5 12 3 2.6l4.8 9.4L3 21.4z" fill="currentColor"/></svg></div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+  }
+
   const handleIcon = () =>
     L.divIcon({ className: 'pf-handle-wrap', html: '<div class="pf-handle"></div>', iconSize: [11, 11], iconAnchor: [5.5, 5.5] });
 
@@ -62,10 +78,10 @@
   // ---- Sortie PDF : le plan entier est réduit à ~190 mm de large, donc tout
   // rapetisse (pin 26 px -> 1,3 mm sur un écran large). On épaissit traits et
   // icônes d'un facteur déduit de la largeur réelle de la carte, le temps de la capture.
-  const PRINT_REF_PX = 1188; // largeur de référence : pin imprimé ~4 mm
+  const PIN_CSS_PX = 26; // diamètre écran d'une icône
+  const PRINT_PIN_MM = 4.2; // diamètre voulu sur le papier
   let printBoost = false;
   let strokes: { layer: L.Path; base: number }[] = [];
-  let pinEls: HTMLElement[] = [];
   let gain = 1;
 
   let printPixels = 1;
@@ -109,16 +125,26 @@
     return printPixels;
   }
 
-  export function setPrintBoost(on: boolean) {
+  export function setPrintBoost(on: boolean, mapWidthMm = 281) {
     printBoost = on;
-    gain = Math.min(4, Math.max(1, (el?.clientWidth ?? printPixels) / PRINT_REF_PX));
+    // l'icône doit mesurer PRINT_PIN_MM sur le papier, quelle que soit la largeur
+    // de la capture : gain = (mm voulus / largeur imprimée) / (taille écran)
+    const width = el?.clientWidth ?? printPixels;
+    gain = Math.min(6, Math.max(0.3, (width * PRINT_PIN_MM) / (PIN_CSS_PX * mapWidthMm)));
+
     for (const { layer, base } of strokes) {
       layer.setStyle({ weight: on ? Math.max(base, 1.6) * gain : base });
     }
-    for (const pinEl of pinEls) {
-      pinEl.style.transform = on ? `scale(${gain})` : '';
-      // l'ombre portée n'est pas transformée par la capture -> artefact gris à l'impression
-      pinEl.style.boxShadow = on ? 'none' : '';
+    // icônes et pointes de flèche : même facteur, via une variable CSS
+    for (const node of el?.querySelectorAll<HTMLElement>('.pf-pin, .pf-arrow') ?? []) {
+      if (on) {
+        node.style.setProperty('--sc', String(gain));
+        // l'ombre portée n'est pas transformée par la capture -> artefact gris à l'impression
+        node.style.boxShadow = 'none';
+      } else {
+        node.style.removeProperty('--sc');
+        node.style.boxShadow = '';
+      }
     }
     // les contrôles Leaflet ne font pas partie du plan
     for (const ctrl of el?.querySelectorAll<HTMLElement>('.leaflet-control-zoom') ?? []) {
@@ -130,7 +156,6 @@
     if (!map || !overlay) return;
     overlay.clearLayers();
     strokes = [];
-    pinEls = [];
 
     store.plan.elements.forEach((e, i) => {
       const sel = store.selection === e.id;
@@ -138,11 +163,22 @@
 
       if (e.ring && e.ring.length > 1) {
         const baseW = isZone(e.kind) ? 2 : 3;
+        const isSortie = e.kind === 'sortie';
         const shape = isZone(e.kind)
           ? L.polygon(e.ring, { color, weight: baseW, fillColor: color, fillOpacity: 0.12 })
-          : L.polyline(e.ring, { color, weight: baseW, dashArray: '7 5' });
+          : L.polyline(e.ring, { color, weight: baseW, dashArray: isSortie ? undefined : '7 5' });
         shape.addTo(overlay!).on('click', () => store.select(e.id));
         strokes.push({ layer: shape, base: baseW });
+
+        if (isSortie && e.ring.length > 1) {
+          const last = e.ring[e.ring.length - 1];
+          const prev = e.ring[e.ring.length - 2];
+          L.marker(last, {
+            icon: arrowIcon(prev, last, color),
+            interactive: false,
+            zIndexOffset: 350,
+          }).addTo(overlay!);
+        }
         // barrière : longueur survolée = métrage à couvrir
         if (!isZone(e.kind) && e.ring) {
           shape.bindTooltip(`${formatMeters(ringLength(e.ring))} m`, {
@@ -158,6 +194,8 @@
             h.on('dragend', () => {
               const ll = h.getLatLng();
               store.moveVertex(e.id, idx, [ll.lat, ll.lng]);
+              // l'icône (centre de zone ou premier point du tracé) doit suivre le sommet
+              draw();
             });
           });
         }
@@ -234,8 +272,6 @@
         draggable: !e.ring,
         zIndexOffset: 300,
       }).addTo(overlay!);
-      const pinEl = m.getElement()?.querySelector<HTMLElement>('.pf-pin');
-      if (pinEl) pinEls.push(pinEl);
       m.bindTooltip(`${i + 1}. ${e.label}`, { direction: 'top', offset: [0, -14], opacity: 0.95 });
       if (!settings.value.showLabels) m.unbindTooltip();
       m.on('drag', (ev) => {
@@ -261,16 +297,20 @@
     const pts = store.draft;
     if (!pts.length) return;
     const isZoneDraft = store.tool !== 'select' && isZone(store.tool);
+    const toolColor =
+      store.tool === 'select' ? KIND_META.zone_perso.color : KIND_META[store.tool].color;
     if (pts.length > 1) {
       (isZoneDraft
-        ? L.polygon(pts, {
-            color: store.tool === 'select' ? KIND_META.zone_perso.color : KIND_META[store.tool].color,
-            weight: 2,
-            dashArray: '6 4',
-            fillOpacity: 0.1,
-          })
-        : L.polyline(pts, { color: KIND_META.barrierage.color, weight: 2, dashArray: '6 4' })
+        ? L.polygon(pts, { color: toolColor, weight: 2, dashArray: '6 4', fillOpacity: 0.1 })
+        : L.polyline(pts, { color: toolColor, weight: 2, dashArray: '6 4' })
       ).addTo(draftGroup);
+
+      // plume : la pointe suit le dernier point posé
+      if (store.tool === 'sortie') {
+        const last = pts[pts.length - 1];
+        const prev = pts[pts.length - 2];
+        L.marker(last, { icon: arrowIcon(prev, last, toolColor), interactive: false }).addTo(draftGroup);
+      }
     }
     pts.forEach((p) =>
       L.circleMarker(p, { radius: 4, color: '#1A1A1A', weight: 1.5, fillColor: '#fff', fillOpacity: 1 }).addTo(

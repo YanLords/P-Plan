@@ -178,11 +178,14 @@ class PlanStore {
     const el = this.plan.elements.find((e) => e.id === id);
     if (!el?.ring?.[index]) return;
     el.ring[index] = at;
-    // le sommet a bougé : l'icône de la zone reste au centre
+    // le sommet a bougé : l'icône de la zone reste au centre, celle d'un tracé
+    // (voie de sortie, barriérage) colle son premier point
     if (isZone(el.kind)) {
       const [lat, lng] = ringCentroid(el.ring);
       el.lat = lat;
       el.lng = lng;
+    } else {
+      [el.lat, el.lng] = el.ring[0];
     }
   }
 

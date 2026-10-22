@@ -12,7 +12,7 @@
 
   let mapEl = $state<HTMLDivElement | null>(null);
   let mapView = $state<{
-    setPrintBoost: (on: boolean) => void;
+    setPrintBoost: (on: boolean, mapWidthMm?: number) => void;
     setPrintFit: (aspect: number, on: boolean) => Promise<number | void>;
   } | null>(null);
   let busy = $state(false);
@@ -75,7 +75,7 @@
         store.plan,
         mapEl,
         mapEl?.clientWidth ?? 900,
-        (on) => mapView?.setPrintBoost(on),
+        (on, mm) => mapView?.setPrintBoost(on, mm),
         (aspect, on) => mapView?.setPrintFit(aspect, on) ?? Promise.resolve(),
         settings.value.company
       );

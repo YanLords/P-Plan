@@ -9,6 +9,8 @@
   import { settings } from './lib/settings.svelte';
   import { savePlan, openPlan, saveFile, slug } from './lib/files';
   import { buildPdf } from './lib/pdf';
+  import { updater } from './lib/updater.svelte';
+  import { onMount } from 'svelte';
 
   let mapEl = $state<HTMLDivElement | null>(null);
   let mapView = $state<{
@@ -22,6 +24,11 @@
   // taille de l'interface demandée dans les réglages
   $effect(() => {
     document.documentElement.style.zoom = String(settings.value.uiScale);
+  });
+
+  // version installée + recherche silencieuse de mise à jour au démarrage
+  onMount(() => {
+    updater.init().then(() => updater.check(true));
   });
 
   // autosave + point de retour undo (debounce) : tout changement du plan est persisté localement
@@ -105,6 +112,12 @@
 
     const mod = e.metaKey || e.ctrlKey;
     const key = e.key.toLowerCase();
+    // export PDF : ⌘E / Ctrl+E
+    if (mod && key === 'e') {
+      e.preventDefault();
+      if (!busy) void onPdf();
+      return;
+    }
     if (mod && (key === 'z' || key === 'y')) {
       e.preventDefault();
       const redone = key === 'y' || e.shiftKey;

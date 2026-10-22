@@ -492,12 +492,19 @@ export async function buildPdf(
     doc.setLineWidth(0.12);
     doc.line(LEG.x, bandY + 8, LEG.x + LEG.w, bandY + 8);
 
+    // notes libres saisies sur les éléments : imprimées sous la légende
+    const notes = plan.elements
+      .map((el, i) => ({ n: i + 1, label: KIND_META[el.kind].label, text: (el.notes ?? '').trim() }))
+      .filter((note) => note.text);
+    const noteStep = 2.5;
+    const notesH = notes.length ? 4.6 + notes.length * noteStep : 0;
+
     // 2 colonnes, police réduite tant que ça tient
     const top = bandY + 12.4;
     const inner = LEG.w - 4;
     const colW = inner / 2;
     const colX = [LEG.x, LEG.x + colW + 4];
-    const avail = LEG.bottom - top;
+    const avail = LEG.bottom - top - notesH;
 
     let fontPt = 6.2;
     let capacity = 0;
@@ -524,6 +531,28 @@ export async function buildPdf(
       }
       legendRow(doc, r, colX[col], top + line * rowStep + 2, colW, icons.get(`${r.kind}|${r.color}`) ?? null, fontPt);
     });
+
+    if (notes.length) {
+      const ny = LEG.bottom - notesH + 3;
+      doc.setDrawColor(...RULE);
+      doc.setLineWidth(0.12);
+      doc.line(LEG.x, ny - 2.4, LEG.x + LEG.w, ny - 2.4);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.6);
+      doc.setTextColor(...INK);
+      doc.text('Notes', LEG.x, ny);
+      doc.setTextColor(...INK);
+      notes.forEach((note, i) => {
+        const ly2 = ny + (i + 1) * noteStep;
+        const lab = `${note.label} — `;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(5.8);
+        doc.text(lab, LEG.x + 12, ly2);
+        const lw = doc.getTextWidth(lab);
+        doc.setFont('helvetica', 'normal');
+        doc.text(fitText(doc, note.text, LEG.w - 14 - lw), LEG.x + 12 + lw, ly2);
+      });
+    }
   }
 
   // ---- Pied de page

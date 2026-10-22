@@ -1,5 +1,5 @@
 import type { Kind, PElement, Plan, Tool } from './elements';
-import { KIND_META, isKindTool, isShape, isZone } from './elements';
+import { KIND_META, sanitizePlan, isKindTool, isShape, isZone } from './elements';
 import { History } from './history';
 import { snapDistance, ringCentroid } from './geo';
 import { settings } from './settings.svelte';
@@ -24,7 +24,7 @@ function loadLocal(): Plan {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) {
       const p = JSON.parse(raw) as Plan;
-      if (p?.version === 1 && Array.isArray(p.elements)) return { ...p, site: String(p.site ?? '') };
+      if (p?.version === 1 && Array.isArray(p.elements)) return sanitizePlan(p);
     }
   } catch {
     /* autosave illisible : on repart d'un plan vide */
@@ -40,8 +40,15 @@ class PlanStore {
   draft = $state<[number, number][]>([]);
   hasUndo = $state(false);
   hasRedo = $state(false);
+  /** compteur de révision : force le redessin après une mutation profonde */
+  rev = $state(0);
 
   #hist = new History(JSON.stringify(loadLocal()));
+
+  /** Signale une mutation invisible (couleur, mode d'affichage) au plan affiché. */
+  touch() {
+    this.rev++;
+  }
 
   /** Point de retour : à appeler après stabilisation (debounce) d'une modification. */
   snapshot() {
@@ -200,6 +207,7 @@ class PlanStore {
     const el = this.plan.elements.find((e) => e.id === id);
     if (!el) return;
     Object.assign(el, patch);
+    this.touch();
   }
 
   remove(id: string) {
@@ -217,8 +225,8 @@ class PlanStore {
     this.#resetHistory();
   }
 
-  loadPlan(p: Plan) {
-    this.plan = p;
+  loadPlan(raw: Plan) {
+    this.plan = sanitizePlan(raw);
     this.selection = null;
     this.draft = [];
     this.tool = 'select';

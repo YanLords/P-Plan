@@ -44,10 +44,25 @@
       <p class="tip">Poignée orange sur la carte pour régler le rayon à la souris.</p>
     {/if}
 
-    {#if el.kind === 'zone_perso'}
+    {#if isZone(el.kind)}
+      <div class="field">
+        <span>Affichage</span>
+        <div class="seg">
+          <button class:on={!el.pointMode} onclick={() => store.update(el.id, { pointMode: false })}>Zone</button>
+          <button class:on={!!el.pointMode} onclick={() => store.update(el.id, { pointMode: true })}>Icône</button>
+        </div>
+      </div>
+    {/if}
+
+    {#if el.kind === 'artifice' || isZone(el.kind) || el.kind === 'marqueur'}
       <label>
-        <span>Couleur de la zone</span>
-        <input class="color" type="color" bind:value={el.color} />
+        <span>Couleur</span>
+        <input
+          class="color"
+          type="color"
+          value={colorOf(el)}
+          oninput={(ev) => store.update(el.id, { color: ev.currentTarget.value })}
+        />
       </label>
     {/if}
 
@@ -140,6 +155,43 @@
     gap: 3px;
     flex: 1;
     min-width: 0;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .field > span {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--text-muted);
+  }
+
+  .seg {
+    display: flex;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .seg button {
+    flex: 1;
+    font-size: 11.5px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: var(--text-secondary);
+  }
+
+  .seg button.on {
+    background: #fff;
+    color: var(--text-primary);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   }
 
   label span {

@@ -194,7 +194,12 @@
   .lbl {
     font-size: 9px;
     letter-spacing: 0.1px;
-    white-space: nowrap;
+    /* les libellés longs (« Voie accès secours ») passent sur 2 lignes */
+    line-height: 1.1;
+    text-align: center;
+    text-wrap: balance;
+    max-width: 100%;
+    overflow-wrap: break-word;
   }
 
   .spacer {

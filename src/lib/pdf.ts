@@ -269,7 +269,7 @@ function drawCartouche(
   const showCompany = !companyIsEmpty(company) || !!qr;
   const S = showCompany ? 22 : 0; // hauteur du bloc entreprise (logo + contact + QR)
   // le cartouche se comprime quand la carte prend de la place (pas de troncature du plan)
-  const DESIGN_H = 54 + S; // dernière ligne du dessin
+  const DESIGN_H = 51 + S; // dernière ligne du dessin
   const k = Math.min(1, (h - 3.5) / DESIGN_H);
   const fs = Math.max(0.8, k);
   // `sat` = coordonnées du bloc entreprise (avant le décalage S), `at` = contenu courant
@@ -381,10 +381,8 @@ function drawCartouche(
   }
   boxRule(doc, at(44.6));
 
-  // valeurs conservées
-  const maxDs = Math.round(plan.elements.reduce((m, e) => Math.max(m, e.ds ?? 0), 0));
-  statRow(doc, at(48.6), 'DS maximale', `${maxDs} m`, fs);
-  statRow(doc, at(52.4), 'Coordonnées', formatCoord(plan.center[0], plan.center[1], 5), fs);
+  // coordonnées du centre du plan (la DS maximale n'est plus imprimée)
+  statRow(doc, at(48.6), 'Coordonnées', formatCoord(plan.center[0], plan.center[1], 5), fs);
 }
 
 /** Flèche du nord. */

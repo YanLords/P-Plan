@@ -1,6 +1,6 @@
-import type { Kind } from './elements';
+import type { Kind, Tool } from './elements';
 
-export type ToolKey = 'select' | Kind;
+export type ToolKey = Tool;
 
 /** Coordonnées de l'entreprise, imprimées dans le cartouche du PDF. */
 export interface Company {
@@ -97,6 +97,7 @@ export const UI_SCALE_STEP = 0.05;
 
 export const SHORTCUT_ORDER: ToolKey[] = [
   'select',
+  'regle',
   'artifice',
   'zone_public',
   'zone_perso',
@@ -113,6 +114,7 @@ export const SHORTCUT_ORDER: ToolKey[] = [
 
 export const SHORTCUT_LABELS: Record<ToolKey, string> = {
   select: 'Sélect.',
+  regle: 'Règle',
   artifice: 'Artifice',
   zone_public: 'Zone public',
   zone_perso: 'Zone perso',
@@ -129,6 +131,7 @@ export const SHORTCUT_LABELS: Record<ToolKey, string> = {
 
 export const DEFAULT_SHORTCUTS: Record<ToolKey, string> = {
   select: 'v',
+  regle: 'r',
   artifice: 'a',
   zone_public: 'p',
   zone_perso: 'z',

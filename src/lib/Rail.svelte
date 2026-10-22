@@ -1,7 +1,7 @@
 <script lang="ts">
   import { store } from './store.svelte';
   import { settings } from './settings.svelte';
-  import { KIND_META, TOOL_ORDER, kindIcon, type Kind } from './elements';
+  import { KIND_META, RULER, TOOL_ORDER, kindIcon, type Kind } from './elements';
 
   let {
     onNew,
@@ -46,6 +46,16 @@
         </svg>
       </span>
       <span class="lbl">Sélect.</span>
+    </button>
+
+    <button
+      class="item"
+      class:active={store.tool === 'regle'}
+      onclick={() => store.setTool('regle')}
+      title={`Règle (${settings.value.shortcuts.regle || '—'})`}
+    >
+      <span class="ico" style="--c:{RULER.color}">{@html RULER.icon}</span>
+      <span class="lbl">Règle</span>
     </button>
 
     {#each TOOL_ORDER as k}

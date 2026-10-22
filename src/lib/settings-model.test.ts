@@ -17,6 +17,7 @@ import {
 test('raccourcis par défaut : ceux de la spécification', () => {
   assert.deepEqual(DEFAULT_SHORTCUTS, {
     select: 'v',
+    regle: 'r',
     artifice: 'a',
     zone_public: 'p',
     zone_perso: 'z',

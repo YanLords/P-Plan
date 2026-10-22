@@ -126,3 +126,19 @@ export const isShape = (kind: Kind) => KIND_META[kind].shape !== 'point';
 
 /** couleur effective d'un élément (couleur perso prioritaire). */
 export const colorOf = (e: { kind: Kind; color?: string }) => e.color || KIND_META[e.kind].color;
+
+/** Outils du rail : les éléments du plan, la sélection, et la règle (mesure, hors plan). */
+export type Tool = Kind | 'select' | 'regle';
+
+/** La règle ne crée pas d'élément : seul un outil d'élément porte un Kind. */
+export const isKindTool = (tool: Tool): tool is Kind => tool !== 'select' && tool !== 'regle';
+
+/** Règle de mesure : outil transitoire, jamais enregistré dans le plan. */
+export const RULER = {
+  label: 'Règle',
+  color: '#2D6DFF',
+  icon:
+    '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M15.6 2.9 2.9 15.6a1.4 1.4 0 0 0 0 2l3.5 3.5a1.4 1.4 0 0 0 2 0L21.1 8.4a1.4 1.4 0 0 0 0-2l-3.5-3.5a1.4 1.4 0 0 0-2 0z"/>' +
+    '<path d="m7.5 11.5 2 2M10.5 8.5l2 2M13.5 5.5l2 2"/></svg>',
+};

@@ -76,8 +76,9 @@ jobs:
           TAG="${{ github.ref_name }}"
           gh release view "$TAG" --repo "$PUBLIC_REPO" >/dev/null 2>&1 || \
             gh release create "$TAG" --repo "$PUBLIC_REPO" --title "Planete Plan $TAG" --notes "Binaires et manifeste de mise à jour de Planete Plan $TAG."
-          find src-tauri/target/release/bundle -type f \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.sig' -o -name '*.exe' -o -name '*.msi' -o -name '*.nsis.zip' \) \
-            -not -name 'rw.*' -exec gh release upload "$TAG" --repo "$PUBLIC_REPO" {} --clobber \;
+          # le chemin dépend de la cible (--target xxx => target/<triple>/release/bundle)
+          find src-tauri/target -type f -path '*bundle*' \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.sig' -o -name '*.exe' -o -name '*.msi' -o -name '*.nsis.zip' \) \
+            -not -name 'rw.*' -not -name '*.dmg.sig' -exec gh release upload "$TAG" --repo "$PUBLIC_REPO" {} --clobber \;
 
   manifest:
     needs: release

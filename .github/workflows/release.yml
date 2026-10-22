@@ -67,12 +67,11 @@ jobs:
           args: ${{ matrix.args }}
 
       - name: Publier dans le dépôt public des releases
-        if: ${{ env.RELEASES_TOKEN != '' }}
         env:
-          RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           PUBLIC_REPO: YanLords/plan-de-feu-releases
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
+          if [ -z "$GH_TOKEN" ]; then echo "RELEASES_TOKEN absent : publication publique ignorée"; exit 0; fi
           TAG="${{ github.ref_name }}"
           gh release view "$TAG" --repo "$PUBLIC_REPO" >/dev/null 2>&1 || \
             gh release create "$TAG" --repo "$PUBLIC_REPO" --title "Planete Plan $TAG" --notes "Binaires et manifeste de mise à jour de Planete Plan $TAG."

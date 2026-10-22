@@ -65,3 +65,57 @@ jobs:
           prerelease: false
           includeUpdaterJson: true
           args: ${{ matrix.args }}
+
+      - name: Publier dans le dépôt public des releases
+        if: ${{ env.RELEASES_TOKEN != '' }}
+        env:
+          RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          PUBLIC_REPO: YanLords/plan-de-feu-releases
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          gh release view "$TAG" --repo "$PUBLIC_REPO" >/dev/null 2>&1 || \
+            gh release create "$TAG" --repo "$PUBLIC_REPO" --title "Planete Plan $TAG" --notes "Binaires et manifeste de mise à jour de Planete Plan $TAG."
+          find src-tauri/target/release/bundle -type f \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.sig' -o -name '*.exe' -o -name '*.msi' -o -name '*.nsis.zip' \) \
+            -not -name 'rw.*' -exec gh release upload "$TAG" --repo "$PUBLIC_REPO" {} --clobber \;
+
+  manifest:
+    needs: release
+    if: ${{ github.ref_type == 'tag' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Manifeste latest.json du dépôt public
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          PUBLIC_REPO: YanLords/plan-de-feu-releases
+        run: |
+          if [ -z "$GH_TOKEN" ]; then echo "RELEASES_TOKEN absent : manifeste non publié"; exit 0; fi
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+          WORK=$(mktemp -d)
+          cd "$WORK"
+          gh release download "$TAG" --repo "$PUBLIC_REPO" --dir . --clobber || true
+          BASE="https://github.com/$PUBLIC_REPO/releases/download/$TAG"
+          sig() { [ -f "$1" ] && cat "$1" | tr -d '\n' || echo ''; }
+          AARCH=$(ls Plan.de.feu_aarch64.app.tar.gz 2>/dev/null | head -1)
+          X64=$(ls Plan.de.feu_x64.app.tar.gz 2>/dev/null | head -1)
+          WIN=$(ls *.nsis.zip 2>/dev/null | head -1)
+          {
+            printf '{\n  "version": "%s",\n  "notes": "Planete Plan %s",\n  "pub_date": "%s",\n  "platforms": {' "$VERSION" "$VERSION" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            first=1
+            add() {
+              if [ -n "$3" ]; then
+                [ $first -eq 1 ] || printf ',\n'
+                first=0
+                printf '    "%s": { "signature": "%s", "url": "%s/%s" }' "$1" "$(sig "$2.sig")" "$BASE" "$2"
+              fi
+            }
+            add darwin-aarch64 "$AARCH" "$AARCH"
+            add darwin-x86_64 "$X64" "$X64"
+            add windows-x86_64 "$WIN" "$WIN"
+            printf '\n  }\n}\n'
+          } > latest.json
+          cat latest.json
+          gh release upload "$TAG" --repo "$PUBLIC_REPO" latest.json --clobber

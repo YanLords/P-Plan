@@ -1,7 +1,7 @@
 <script lang="ts">
   import { store } from './store.svelte';
   import { settings } from './settings.svelte';
-  import { KIND_META, TOOL_ORDER, kindIcon, type Kind } from './elements';
+  import { KIND_META, RULER, TOOL_ORDER, kindIcon, type Kind } from './elements';
 
   let {
     onNew,
@@ -26,11 +26,9 @@
 </script>
 
 <aside class="rail">
-  <div class="brand" title="Plan de feu">
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 3c1.2 3.2-.8 4.4-2 6-1.4 1.8-2 3.2-2 5a4 4 0 0 0 8 0c0-2-1-3.4-2-4 0 1.4-.6 2.2-1.4 2.6" />
-      <path d="M5 21h14" />
-    </svg>
+  <div class="brand" title="Planete Plan">
+    <img class="brand-icon" src="/app-icon.png" alt="Planete Plan" width="34" height="34" />
+    <span class="brand-name">Planete Plan</span>
   </div>
 
   <nav class="tools">
@@ -46,6 +44,16 @@
         </svg>
       </span>
       <span class="lbl">Sélect.</span>
+    </button>
+
+    <button
+      class="item"
+      class:active={store.tool === 'regle'}
+      onclick={() => store.setTool('regle')}
+      title={`Règle (${settings.value.shortcuts.regle || '—'})`}
+    >
+      <span class="ico" style="--c:{RULER.color}">{@html RULER.icon}</span>
+      <span class="lbl">Règle</span>
     </button>
 
     {#each TOOL_ORDER as k}
@@ -82,7 +90,7 @@
       </span>
       <span class="lbl">Sauver</span>
     </button>
-    <button class="item" class:busy onclick={onPdf} disabled={busy} title="Exporter en PDF">
+    <button class="item" class:busy onclick={onPdf} disabled={busy} title="Exporter en PDF (⌘E / Ctrl+E)">
       <span class="ico" style="--c:var(--accent)">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11" /><path d="m7.5 10 4.5 4.5 4.5-4.5" /><path d="M4 18h16" /></svg>
       </span>
@@ -113,14 +121,31 @@
   }
 
   .brand {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    display: grid;
-    place-items: center;
-    color: var(--accent);
-    background: var(--accent-light);
-    margin-bottom: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+    padding: 0 4px;
+  }
+
+  .brand-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: block;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+
+  .brand-name {
+    font-family: 'Inter', var(--font-family);
+    font-weight: 900;
+    font-size: 9.5px;
+    line-height: 1.05;
+    letter-spacing: -0.3px;
+    text-align: center;
+    color: var(--text-primary);
+    text-transform: none;
   }
 
   .tools,

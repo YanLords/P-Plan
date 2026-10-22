@@ -1,5 +1,5 @@
-import type { Kind, PElement, Plan } from './elements';
-import { KIND_META, isShape, isZone } from './elements';
+import type { Kind, PElement, Plan, Tool } from './elements';
+import { KIND_META, isKindTool, isShape, isZone } from './elements';
 import { History } from './history';
 import { snapDistance, ringCentroid } from './geo';
 import { settings } from './settings.svelte';
@@ -34,7 +34,7 @@ function loadLocal(): Plan {
 
 class PlanStore {
   plan = $state<Plan>(loadLocal());
-  tool = $state<Kind | 'select'>('select');
+  tool = $state<Tool>('select');
   selection = $state<string | null>(null);
   /** sommets en cours de tracé (barriérage / zone public) */
   draft = $state<[number, number][]>([]);
@@ -91,7 +91,7 @@ class PlanStore {
     return this.artifices.reduce((m, e) => Math.max(m, e.ds ?? 0), 0);
   }
 
-  setTool(t: Kind | 'select') {
+  setTool(t: Tool) {
     this.tool = t;
     this.draft = [];
     if (t !== 'select') this.selection = null;
@@ -140,7 +140,7 @@ class PlanStore {
   finishDraft(): boolean {
     const ring = this.draft;
     const kind: Kind | null =
-      this.tool !== 'select' && isShape(this.tool) ? (this.tool as Kind) : null;
+      isKindTool(this.tool) && isShape(this.tool) ? this.tool : null;
     if (!kind) return false;
     const min = isZone(kind) ? 3 : 2;
     if (ring.length < min) return false;

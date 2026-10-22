@@ -4,3 +4,8 @@ src-tauri/target
 src-tauri/gen/schemas
 .DS_Store
 *.log
+
+# captures de référence et divers
+*.png.bak
+Capture d’écran*.png
+image001.png

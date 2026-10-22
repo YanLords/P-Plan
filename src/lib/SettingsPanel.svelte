@@ -1,6 +1,7 @@
 <script lang="ts">
   import { settings } from './settings.svelte';
   import { logoDataUrl } from './media';
+  import { updater } from './updater.svelte';
   import { MAX_LOGO_CHARS, companyIsEmpty, vcardOf } from './settings-model';
   import {
     SHORTCUT_LABELS,
@@ -13,6 +14,12 @@
   } from './settings-model';
 
   let { onClose }: { onClose: () => void } = $props();
+
+  // compte à rebours du garde-fou de redémarrage
+  $effect(() => {
+    const id = setInterval(() => updater.tick(), 1000);
+    return () => clearInterval(id);
+  });
 
   function capture(tool: ToolKey, e: KeyboardEvent) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -261,6 +268,49 @@
       </section>
 
       <section>
+        <h3>Mises à jour</h3>
+        <p class="note">
+          Version installée : <b>{updater.version || '—'}</b>
+          {#if updater.state === 'uptodate'}· à jour{/if}
+        </p>
+
+        {#if updater.next}
+          <p class="note">
+            Version <b>{updater.next.version}</b> disponible
+            {#if updater.next.notes}<br /><span class="release-notes">{updater.next.notes}</span>{/if}
+          </p>
+        {/if}
+
+        {#if updater.state === 'downloading'}
+          <div class="progress" role="progressbar" aria-valuenow={updater.progress} aria-valuemin="0" aria-valuemax="100">
+            <span style="width:{updater.progress}%"></span>
+          </div>
+          <p class="note">Téléchargement… {updater.progress} %</p>
+        {/if}
+
+        {#if updater.message}
+          <p class="error">{updater.message}</p>
+        {/if}
+
+        <div class="update-actions">
+          <button class="file" disabled={updater.busy} onclick={() => updater.check()}>
+            {updater.busy && updater.state === 'checking' ? 'Vérification…' : 'Vérifier les mises à jour'}
+          </button>
+          {#if updater.next}
+            <button
+              class="file primary"
+              disabled={updater.busy || updater.cooldown > 0}
+              onclick={() => updater.install()}
+            >
+              {updater.cooldown > 0
+                ? `Redémarrage possible dans ${updater.cooldown} s`
+                : 'Installer et redémarrer'}
+            </button>
+          {/if}
+        </div>
+      </section>
+
+      <section>
         <h3>Raccourcis clavier</h3>
         <p class="note">Cliquez un champ puis appuyez sur une touche. <kbd>Retour arrière</kbd> pour désactiver.</p>
         <ul class="keys">
@@ -460,6 +510,44 @@
 
   .mono {
     font-variant-numeric: tabular-nums;
+  }
+
+  .release-notes {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .progress {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--bg-surface, #eee);
+    overflow: hidden;
+    margin: 6px 0 4px;
+  }
+
+  .progress span {
+    display: block;
+    height: 100%;
+    background: var(--accent, #fca04b);
+    transition: width 0.2s ease;
+  }
+
+  .update-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .update-actions .file.primary {
+    background: var(--accent, #fca04b);
+    border-color: var(--accent, #fca04b);
+    color: #fff;
+  }
+
+  .update-actions .file:disabled {
+    opacity: 0.55;
+    cursor: default;
   }
 
   .row {

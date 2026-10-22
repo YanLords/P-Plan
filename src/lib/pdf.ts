@@ -221,13 +221,11 @@ function legendRow(
   }
 }
 
-/** Cadre extérieur + filet intérieur : le « cadre » du cartouche. */
+/** Cadre extérieur du plan (filet unique). */
 function drawFrame(doc: jsPDF): void {
   doc.setDrawColor(...INK);
   doc.setLineWidth(0.4);
   doc.rect(FRAME.x, FRAME.y, FRAME.w, FRAME.h);
-  doc.setLineWidth(0.12);
-  doc.rect(FRAME.x + 1.2, FRAME.y + 1.2, FRAME.w - 2.4, FRAME.h - 2.4);
 }
 
 /** Une ligne de cartouche : libellé à gauche, valeur en gras à droite. */
@@ -538,7 +536,6 @@ export async function buildPdf(
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Plan de feu · ${plan.titre}`, FRAME.x + 1.2, FOOT_Y);
     doc.text(
       `Coordonnées WGS84 · page ${p}/${pages}`,
       FRAME.x + FRAME.w - 1.2,

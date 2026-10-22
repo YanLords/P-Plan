@@ -1,4 +1,4 @@
-# Plan de feu
+# Planete Plan
 
 Générateur **local** de plans de disposition de feux d'artifice — équivalent de
 [PlanFeu](https://planfeu.jacques-prevot.fr/web/) (Jacques Prevot Artifices), sans compte,

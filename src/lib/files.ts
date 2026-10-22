@@ -33,7 +33,7 @@ export async function saveFile(defaultName: string, data: string | Uint8Array, f
 
 export async function savePlan(plan: Plan) {
   const name = `${slug(plan.titre)}-${plan.date}.planfeu.json`;
-  return saveFile(name, JSON.stringify(plan, null, 2), [{ name: 'Plan de feu', extensions: ['json'] }]);
+  return saveFile(name, JSON.stringify(plan, null, 2), [{ name: 'Planete Plan', extensions: ['json'] }]);
 }
 
 /** Ouvre un plan depuis un fichier. Renvoie null si annulé. */
@@ -42,7 +42,7 @@ export async function openPlan(): Promise<Plan | null> {
   if (isTauri()) {
     const { open } = await import('@tauri-apps/plugin-dialog');
     const { readTextFile } = await import('@tauri-apps/plugin-fs');
-    const path = await open({ multiple: false, filters: [{ name: 'Plan de feu', extensions: ['json'] }] });
+    const path = await open({ multiple: false, filters: [{ name: 'Planete Plan', extensions: ['json'] }] });
     if (!path) return null;
     text = await readTextFile(path as string);
   } else {

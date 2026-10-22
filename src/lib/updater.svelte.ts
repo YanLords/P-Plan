@@ -38,6 +38,8 @@ class UpdaterStore {
   busy = $state(false);
   /** secondes de garde-fou avant redémarrage */
   cooldown = $state(0);
+  /** « Plus tard » : masquée jusqu'au prochain lancement (état de session) */
+  dismissed = $state(false);
 
   #update: Update | null = null;
 
@@ -138,6 +140,11 @@ class UpdaterStore {
       this.message = `Redémarrage impossible : ${String(err)}`;
       return false;
     }
+  }
+
+  /** Report de la proposition : l'alerte ne revient qu'au prochain démarrage. */
+  dismiss(): void {
+    this.dismissed = true;
   }
 
   /** Mise à jour du compte à rebours affiché (appelée par l'interface). */

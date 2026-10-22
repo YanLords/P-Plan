@@ -54,9 +54,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'Plan de feu ${{ github.ref_name }}'
+          releaseName: 'Planete Plan ${{ github.ref_name }}'
           releaseBody: |
-            Plan de feu — plans de disposition de feux d'artifice.
+            Planete Plan — plans de disposition de feux d'artifice.
 
             - macOS (Apple Silicon + Intel) : `.dmg`
             - Windows : installateur `.exe` / `.msi`
@@ -87,10 +87,10 @@ jobs:
             *aarch64-apple-darwin*) ARCH=aarch64 ;;
             *x86_64-apple-darwin*) ARCH=x64 ;;
           esac
-          if [ -n "$ARCH" ] && [ -f "$STAGE/Plan de feu.app.tar.gz" ]; then
-            mv "$STAGE/Plan de feu.app.tar.gz" "$STAGE/Plan de feu_$ARCH.app.tar.gz"
-            if [ -f "$STAGE/Plan de feu.app.tar.gz.sig" ]; then
-              mv "$STAGE/Plan de feu.app.tar.gz.sig" "$STAGE/Plan de feu_$ARCH.app.tar.gz.sig"
+          if [ -n "$ARCH" ] && [ -f "$STAGE/Planete Plan.app.tar.gz" ]; then
+            mv "$STAGE/Planete Plan.app.tar.gz" "$STAGE/Planete Plan_$ARCH.app.tar.gz"
+            if [ -f "$STAGE/Planete Plan.app.tar.gz.sig" ]; then
+              mv "$STAGE/Planete Plan.app.tar.gz.sig" "$STAGE/Planete Plan_$ARCH.app.tar.gz.sig"
             fi
           fi
           ls -l "$STAGE"
@@ -117,8 +117,8 @@ jobs:
           gh release download "$TAG" --repo "$PUBLIC_REPO" --dir . --clobber || true
           BASE="https://github.com/$PUBLIC_REPO/releases/download/$TAG"
           sig() { [ -f "$1" ] && cat "$1" | tr -d '\n' || echo ''; }
-          AARCH=$(ls Plan.de.feu_aarch64.app.tar.gz 2>/dev/null | head -1)
-          X64=$(ls Plan.de.feu_x64.app.tar.gz 2>/dev/null | head -1)
+          AARCH=$(ls Planete.Plan_aarch64.app.tar.gz 2>/dev/null | head -1)
+          X64=$(ls Planete.Plan_x64.app.tar.gz 2>/dev/null | head -1)
           # Windows : l'artefact de mise à jour est l'installeur NSIS (-setup.exe)
           WIN=$(ls *_x64-setup.exe 2>/dev/null | head -1)
           {

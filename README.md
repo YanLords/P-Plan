@@ -1,4 +1,4 @@
-# Plan de feu
+# Planete Plan
 
 Générateur **local** de plans de disposition de feux d'artifice — sans compte,
 sans serveur, sans envoi de données. Cartographie du site de tir, placement des éléments,

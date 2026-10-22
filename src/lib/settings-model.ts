@@ -103,12 +103,12 @@ export const SHORTCUT_ORDER: ToolKey[] = [
   'zone_perso',
   'barrierage',
   'sortie',
-  'acces_secours',
   'accueil_secours',
   'point_eau',
   'extincteur',
-  'echelle',
+  'son',
   'surveillance',
+  'bateau',
   'marqueur',
 ];
 
@@ -119,13 +119,13 @@ export const SHORTCUT_LABELS: Record<ToolKey, string> = {
   zone_public: 'Zone public',
   zone_perso: 'Zone perso',
   barrierage: 'Barriérage',
-  sortie: 'Sortie',
-  acces_secours: 'Accès secours',
+  sortie: 'Accès secours',
   accueil_secours: 'Accueil secours',
   point_eau: "Point d'eau",
   extincteur: 'Extincteur',
-  echelle: 'Échelle',
+  son: 'Son',
   surveillance: 'Surveillance',
+  bateau: 'Bateau',
   marqueur: 'Marqueur',
 };
 
@@ -137,12 +137,12 @@ export const DEFAULT_SHORTCUTS: Record<ToolKey, string> = {
   zone_perso: 'z',
   barrierage: 'b',
   sortie: 'o',
-  acces_secours: 's',
   accueil_secours: 'q',
   point_eau: 'e',
   extincteur: 'w',
-  echelle: 'x',
+  son: 's',
   surveillance: 'g',
+  bateau: 'f',
   marqueur: 'm',
 };
 

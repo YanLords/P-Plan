@@ -5,16 +5,32 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+## [0.3.0] — 2026-10-22
+
 ### Ajouté
 
 - Notification discrète quand une mise à jour est disponible : « Installer maintenant » / « Plus tard » (report jusqu'au prochain lancement), avec progression du téléchargement.
 - Revérification automatique toutes les 4 h en plus du contrôle au démarrage.
-- Fichier `CHANGELOG.md`.
+- Couleur personnalisable sur un artifice : le cercle de sécurité, l'icône et la ligne de légende du PDF suivent la teinte choisie.
+- Zone public (et zone perso, fond de bateau) : bascule **Zone / Icône** dans le panneau — la zone reste enregistrée, seule son icône s'affiche.
+- Nouvel élément **Son** et nouvel élément **Fond de bateau** (zone de fond, dessinée sous les autres).
+- Le rayon de sécurité et son trait restent visibles sur le plan, même sans sélection (donc à l'impression).
 
 ### Modifié
 
 - L'application s'appelle désormais **Planete Plan** (nom de fenêtre, bundle macOS, installateur Windows, titres des releases).
-- Rail : icône de l'application suivie du nom, en Inter Black.
+- Rail : icône de l'application suivie du nom, en Inter Black ; les libellés longs passent sur deux lignes.
+- « Voie de sortie » devient **Voie accès secours**.
+- Le champ Date du plan est plus lisible (icône de calendrier visible, focus accentué).
+
+### Retiré
+
+- Élément **Échelle**.
+- Élément **Accès secours**.
+
+### Corrigé
+
+- Les plans enregistrés contenant un type d'élément disparu sont nettoyés à l'ouverture au lieu de casser l'affichage.
 
 ## [0.1.1] — 2026-10-22
 

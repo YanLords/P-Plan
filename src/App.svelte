@@ -296,17 +296,44 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
-    color: var(--text-muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-weight: 600;
+    color: var(--text-secondary);
   }
 
   .date input {
     border: 1px solid var(--border-card);
-    border-radius: 7px;
-    padding: 3px 6px;
-    font-size: 11px;
-    color: var(--text-secondary);
-    background: var(--bg-surface);
+    border-radius: 8px;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: #fff;
+    color-scheme: light;
+  }
+
+  .date input:hover {
+    border-color: var(--accent);
+  }
+
+  .date input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+  }
+
+  /* l'icône du calendrier doit se voir, c'est le seul moyen d'ouvrir le sélecteur */
+  .date input::-webkit-calendar-picker-indicator {
+    width: 16px;
+    height: 16px;
+    opacity: 0.8;
+    cursor: pointer;
+  }
+
+  .date input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
   }
 
   .stats {

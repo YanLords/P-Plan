@@ -4,7 +4,7 @@
   import 'leaflet/dist/leaflet.css';
   import { store } from './store.svelte';
   import { settings } from './settings.svelte';
-  import { KIND_META, RULER, colorOf, isKindTool, isShape, isZone, kindIcon, TOOL_ORDER, type PElement } from './elements';
+  import { KIND_META, RULER, colorOf, isFond, isKindTool, isShape, isZone, kindIcon, TOOL_ORDER, type PElement } from './elements';
   import { destinationPoint, formatMeters, haversine, ringLength, snapDistance } from './geo';
   import { kindCursor } from './cursors';
   import { searchPlaces, type Place } from './geocode';
@@ -161,11 +161,16 @@
     overlay.clearLayers();
     strokes = [];
 
-    store.plan.elements.forEach((e, i) => {
+    // le fond (bateau) est dessiné en premier, sous les équipements
+    const ordered = store.plan.elements
+      .map((e, i) => ({ e, i }))
+      .sort((a, b) => Number(isFond(b.e.kind)) - Number(isFond(a.e.kind)));
+
+    ordered.forEach(({ e, i }) => {
       const sel = store.selection === e.id;
       const color = colorOf(e);
 
-      if (e.ring && e.ring.length > 1) {
+      if (e.ring && e.ring.length > 1 && !e.pointMode) {
         const baseW = isZone(e.kind) ? 2 : 3;
         const isSortie = e.kind === 'sortie';
         const shape = isZone(e.kind)
@@ -222,20 +227,21 @@
           }).addTo(overlay!);
           strokes.push({ layer: circle, base: 1 });
 
-          let ray: L.Polyline | null = null;
           let grip: L.Marker | null = null;
+
+          // rayon visible en permanence : il fait partie du plan imprimé
+          const at = destinationPoint(center.lat, center.lng, ds, 90);
+          const ray = L.polyline([center, at], {
+            color,
+            weight: 1,
+            dashArray: '3 4',
+            opacity: 0.8,
+            interactive: false,
+          }).addTo(overlay!);
+          strokes.push({ layer: ray, base: 1 });
 
           // poignée de réglage du rayon, à l'est du point (axe carte)
           if (sel) {
-            const at = destinationPoint(center.lat, center.lng, ds, 90);
-            ray = L.polyline([center, at], {
-              color,
-              weight: 1,
-              dashArray: '3 4',
-              opacity: 0.8,
-              interactive: false,
-            }).addTo(overlay!);
-
             const g = L.marker(at, { icon: radiusIcon(), draggable: true, zIndexOffset: 700 }).addTo(overlay!);
             grip = g;
             g.bindTooltip(`DS ${ds} m`, { direction: 'top', offset: [0, -12], sticky: false });
@@ -261,11 +267,9 @@
           // déplacer le point déplace son périmètre en direct (sélectionné ou non)
           onPinDrag = (ll) => {
             circle.setLatLng(ll);
-            if (ray && grip) {
-              const at = destinationPoint(ll.lat, ll.lng, ds, 90);
-              ray.setLatLngs([ll, at]);
-              grip.setLatLng(at);
-            }
+            const to = destinationPoint(ll.lat, ll.lng, ds, 90);
+            ray.setLatLngs([ll, to]);
+            grip?.setLatLng(to);
           };
         }
       }
@@ -273,7 +277,7 @@
       // une zone/ligne se déplace par ses sommets : l'icône reste au centre
       const m = L.marker([e.lat, e.lng], {
         icon: pin(e, sel),
-        draggable: !e.ring,
+        draggable: !e.ring || !!e.pointMode,
         zIndexOffset: 300,
       }).addTo(overlay!);
       m.bindTooltip(`${i + 1}. ${e.label}`, { direction: 'top', offset: [0, -14], opacity: 0.95 });
@@ -328,6 +332,7 @@
     // dépend des éléments/selection via draw()
     store.plan.elements.length;
     store.selection;
+    store.rev;
     if (map) draw();
   });
 

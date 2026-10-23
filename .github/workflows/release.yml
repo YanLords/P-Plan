@@ -52,6 +52,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # signature ad-hoc du bundle macOS (pas de certificat Apple Developer) :
+          # le bundle est signé en entier (Info.plist lié), ce qui évite les
+          # variantes « application endommagée ». Gatekeeper avertit quand même.
+          APPLE_SIGNING_IDENTITY: '-'
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Planete Plan ${{ github.ref_name }}'
@@ -61,6 +65,26 @@ jobs:
             - macOS (Apple Silicon + Intel) : `.dmg`
             - Windows : installateur `.exe` / `.msi`
             - Mise à jour automatique depuis l'application (Réglages → Mises à jour)
+
+            ### Première ouverture sur macOS
+
+            L'app n'est pas notariée par Apple (abonnement Apple Developer payant), macOS affiche
+            donc « Apple n'a pas pu confirmer que Planete Plan ne contenait pas de logiciel
+            malveillant ». Une seule fois, au choix :
+
+            - **clic droit sur l'app → Ouvrir → Ouvrir** (ou Réglages Système → Confidentialité
+              et sécurité → « Ouvrir quand même ») ;
+            - ou dans le Terminal, après avoir glissé l'app dans Applications :
+
+              `xattr -dr com.apple.quarantine "/Applications/Planete Plan.app"`
+
+            Les mises à jour suivantes passent par l'application (Réglages → Mises à jour) et
+            **ne redéclenchent pas** ce message.
+
+            ### Windows
+
+            SmartScreen demande « Informations complémentaires → Exécuter quand même » au premier
+            lancement.
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true

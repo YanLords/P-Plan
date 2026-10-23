@@ -5,6 +5,12 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+## [0.3.5] — 2026-10-23
+
+### Corrigé
+
+- La fenêtre « Nouveautés » ne s'affichait pas lors de la **première** mise à jour qui introduit le suivi de version (l'ancienne version ne pouvait pas laisser de trace). Trois cas déclenchent désormais l'annonce : marqueur posé par l'application avant son redémarrage, version différente de celle vue au lancement précédent, ou première version après une mise à jour depuis une release antérieure au suivi (détectée par le plan autosauvegardé). Une installation neuve n'affiche rien.
+
 ## [0.3.4] — 2026-10-23
 
 ### Ajouté

@@ -2,16 +2,10 @@ import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
 import QRCode from 'qrcode';
 import { companyIsEmpty, vcardOf, type Company } from './settings-model';
-import type { Plan, PElement, Kind } from './elements';
-import { KIND_META, colorOf, kindIconSvg, isZone } from './elements';
-import {
-  formatCoord,
-  formatMeters,
-  metersPerPixel,
-  ringArea,
-  ringLength,
-  scaleBarLength,
-} from './geo';
+import type { Plan, Kind } from './elements';
+import { KIND_META, colorOf, kindIconSvg } from './elements';
+import { formatCoord, formatMeters, metersPerPixel, scaleBarLength } from './geo';
+import { cityOf, legendRowsFor, type LegRow } from './legend';
 
 // A4 paysage : carte pleine largeur en haut, cartouche (gauche) + légende (droite) dessous.
 const FRAME = { x: 8, y: 8, w: 281, h: 194 };
@@ -20,7 +14,6 @@ const CART = { x: 8, w: 122 };
 const LEG = { x: 136, w: 153, bottom: 195 };
 const FOOT_Y = 199;
 /** Types regroupés en une seule ligne de légende (un seul point d'eau, un seul extincteur…). */
-const MERGED: Kind[] = ['point_eau', 'bouee', 'extincteur', 'son', 'accueil_secours', 'surveillance'];
 
 const INK: [number, number, number] = [26, 26, 26];
 const MUTED: [number, number, number] = [110, 110, 110];
@@ -120,73 +113,36 @@ async function qrPng(text: string): Promise<string | null> {
   }
 }
 
+/** Découpe un texte en lignes selon la largeur imprimable (police déjà réglée). */
+function wrapText(doc: jsPDF, text: string, maxWidth: number, maxLines = 2): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const next = line ? `${line} ${word}` : word;
+    if (!line || doc.getTextWidth(next) <= maxWidth) {
+      line = next;
+      continue;
+    }
+    lines.push(line);
+    line = word;
+    if (lines.length === maxLines) break;
+  }
+  if (lines.length < maxLines) {
+    if (line) lines.push(line);
+    return lines;
+  }
+  // débordement : la dernière ligne est tronquée proprement
+  const kept = lines.slice(0, maxLines - 1);
+  const rest = [lines[maxLines - 1], line].filter(Boolean).join(' ');
+  return [...kept, fitText(doc, rest, maxWidth)];
+}
+
 /** Tronque un texte à la largeur disponible (police déjà réglée). */
 function fitText(doc: jsPDF, text: string, maxWidth: number): string {
   if (doc.getTextWidth(text) <= maxWidth) return text;
   let t = text;
   while (t.length > 1 && doc.getTextWidth(`${t}…`) > maxWidth) t = t.slice(0, -1);
   return `${t}…`;
-}
-
-/** Détails techniques d'un élément, sur une seule ligne (sans GPS : la carte suffit). */
-function detailOf(e: PElement): string {
-  const d: string[] = [];
-  if (e.kind === 'artifice') {
-    if (e.ds != null) d.push(`DS ${e.ds} m`);
-    if (e.ref) d.push(`réf ${e.ref}`);
-    if (e.calibre != null) d.push(`${e.calibre} mm`);
-    return d.join(' · ');
-  }
-  if (e.ring?.length) {
-    // la longueur n'a de sens que pour un barriérage (métrage à prévoir) :
-    // ni zone (aire) ni voie de sortie (simple itinéraire)
-    if (isZone(e.kind)) d.push(`${formatMeters(ringLength(e.ring, true))} m · ${formatMeters(ringArea(e.ring))} m²`);
-    else if (e.kind === 'barrierage') d.push(`${formatMeters(ringLength(e.ring))} m`);
-  }
-  return d.join(' · ');
-}
-
-interface LegRow {
-  kind: Kind;
-  color: string;
-  label: string;
-  details: string;
-  /** note libre saisie sur l'élément, imprimée sous sa ligne de légende */
-  note: string;
-}
-
-/** Lignes de légende : les équipements répétés sont fusionnés en une seule entrée. */
-function legendRowsFor(plan: Plan): LegRow[] {
-  const rows: LegRow[] = [];
-  const seen = new Set<Kind>();
-  for (const e of plan.elements) {
-    const meta = KIND_META[e.kind];
-    const color = colorOf(e);
-    if (MERGED.includes(e.kind)) {
-      if (seen.has(e.kind)) continue;
-      seen.add(e.kind);
-      const mergedNotes = plan.elements
-        .filter((other) => other.kind === e.kind)
-        .map((other) => (other.notes ?? '').trim())
-        .filter(Boolean);
-      rows.push({ kind: e.kind, color, label: meta.label, details: '', note: mergedNotes.join(' · ') });
-      continue;
-    }
-    const label =
-      e.kind === 'marqueur'
-        ? `Marqueur — ${e.label}`
-        : e.label && e.label !== meta.label
-          ? `${meta.label} — ${e.label}`
-          : meta.label;
-    rows.push({
-      kind: e.kind,
-      color,
-      label,
-      details: e.kind === 'marqueur' ? '' : detailOf(e),
-      note: (e.notes ?? '').trim(),
-    });
-  }
-  return rows;
 }
 
 function legendRow(
@@ -259,10 +215,6 @@ function boxRule(doc: jsPDF, y: number): void {
 }
 
 /** Commune seule, extraite du libellé d'adresse (« Sarrey 63550 … » -> « Sarrey »). */
-function cityOf(site: string): string {
-  return site.replace(/\s+\d{5}.*$/, '').trim() || site.trim() || '—';
-}
-
 /** Cartouche « schéma de mise en œuvre » compact, sous la carte. */
 function drawCartouche(
   doc: jsPDF,
@@ -278,9 +230,9 @@ function drawCartouche(
   const w = CART.w;
   const cx = x + w / 2;
   const showCompany = !companyIsEmpty(company) || !!qr;
-  const S = showCompany ? 22 : 0; // hauteur du bloc entreprise (logo + contact + QR)
+  const S = showCompany ? 19 : 0; // hauteur du bloc entreprise (logo + contact + QR)
   // le cartouche se comprime quand la carte prend de la place (pas de troncature du plan)
-  const DESIGN_H = 51 + S; // dernière ligne du dessin
+  const DESIGN_H = 44 + S; // dernière ligne du dessin
   const k = Math.min(1, (h - 3.5) / DESIGN_H);
   const fs = Math.max(0.8, k);
   // `sat` = coordonnées du bloc entreprise (avant le décalage S), `at` = contenu courant
@@ -294,19 +246,19 @@ function drawCartouche(
 
   if (showCompany) {
     // 0. identité : logo à gauche, coordonnées au centre, QR de contact à droite
-    const box = unit(13);
+    const box = unit(11);
     if (company.logo && logo) {
       const ratio = Math.min(box / logo.w, box / logo.h);
       doc.addImage(company.logo, 'PNG', x + 3, sat(1.4), logo.w * ratio, logo.h * ratio, undefined, 'FAST');
     }
-    const qrSize = qr ? unit(19) : 0;
+    const qrSize = qr ? unit(17) : 0;
     const textX = x + 3 + box + 3;
     const textW = x + w - 3 - (qr ? qrSize + 3 : 0) - textX;
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.8 * fs);
     doc.setTextColor(...INK);
-    doc.text(fitText(doc, company.name || '—', textW), textX, sat(5.6));
+    doc.text(fitText(doc, company.name || '—', textW), textX, sat(5.2));
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7 * fs);
@@ -314,71 +266,66 @@ function drawCartouche(
     [company.address, company.phone, company.email, company.website]
       .filter(Boolean)
       .slice(0, 4)
-      .forEach((line, i) => doc.text(fitText(doc, line, textW), textX, sat(9.8 + i * 3.4)));
+      .forEach((line, i) => doc.text(fitText(doc, line, textW), textX, sat(9.2 + i * 3.2)));
 
     if (qr) {
       doc.addImage(qr, 'PNG', x + w - 3 - qrSize, sat(1.4), qrSize, qrSize, undefined, 'FAST');
     }
-    boxRule(doc, sat(21));
+    boxRule(doc, sat(18.2));
   }
 
   // titre
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14 * fs);
   doc.setTextColor(...INK);
-  doc.text('SCHÉMA DE MISE EN ŒUVRE', cx, at(7.4), { align: 'center' });
-  boxRule(doc, at(11.6));
+  doc.text('SCHÉMA DE MISE EN ŒUVRE', cx, at(7.2), { align: 'center' });
+  boxRule(doc, at(11.2));
 
-  // lieu : ville en gros, adresse complète, date
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.2 * fs);
-  doc.setTextColor(...MUTED);
-  doc.text('Spectacle pyrotechnique', cx, at(14.2), { align: 'center' });
-
+  // commune en gros, puis l'adresse complète telle qu'elle a été saisie
   const city = cityOf(plan.site);
-  // le libellé d'adresse commence souvent par la commune : on ne l'imprime pas deux fois
-  const rest = plan.site.startsWith(city) ? plan.site.slice(city.length).trim() : plan.site;
-
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13 * fs);
   doc.setTextColor(...INK);
-  doc.text(fitText(doc, city || 'Lieu non renseigné', w - 8), cx, at(20.8), { align: 'center' });
+  doc.text(fitText(doc, city || 'Lieu non renseigné', w - 8), cx, at(16.4), { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7 * fs);
+  doc.setFontSize(6.8 * fs);
   doc.setTextColor(...MUTED);
-  if (rest && rest !== city) doc.text(fitText(doc, rest, w - 8), cx, at(25), { align: 'center' });
+  const address = plan.site.trim();
+  if (address) {
+    wrapText(doc, address, w - 8, 2).forEach((line, i) => doc.text(line, cx, at(20.4 + i * 3), { align: 'center' }));
+  }
 
-  doc.setFontSize(7 * fs);
+  doc.setFontSize(7.2 * fs);
   doc.setTextColor(...INK);
   doc.text(
     new Date(`${plan.date}T12:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }),
     cx,
-    at(rest && rest !== city ? 28.8 : 26.4),
+    at(26.8),
     { align: 'center' }
   );
-  boxRule(doc, at(31));
+  boxRule(doc, at(28.6));
 
-  // échelle mesurable + date d'étude
+  // échelle mesurable + date d'étude, sur une bande compacte
   const half = w / 2;
   const leftCx = x + half / 2;
   doc.setDrawColor(...RULE);
   doc.setLineWidth(0.1);
-  doc.line(x + half, at(31), x + half, at(44.6));
+  doc.line(x + half, at(28.6), x + half, at(38.6));
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.4 * fs);
+  doc.setFontSize(6.2 * fs);
   doc.setTextColor(...MUTED);
-  doc.text('Échelle', leftCx, at(35), { align: 'center' });
-  doc.text("Date d'étude", x + half * 1.5, at(35), { align: 'center' });
+  doc.text('Échelle', leftCx, at(31.6), { align: 'center' });
+  doc.text("Date d'étude", x + half * 1.5, at(31.6), { align: 'center' });
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.6 * fs);
+  doc.setFontSize(7.2 * fs);
   doc.setTextColor(...INK);
-  doc.text(new Date().toLocaleDateString('fr-FR'), x + half * 1.5, at(39.8), { align: 'center' });
+  doc.text(new Date().toLocaleDateString('fr-FR'), x + half * 1.5, at(35.4), { align: 'center' });
 
   // barre cotée à sa longueur réelle sur le papier : seul repère d'échelle
   const bar = scaleBarLength(metersPerMm, half - 12);
   if (bar.meters) {
-    const by = at(39.8);
+    const by = at(35.4);
     const bx = leftCx - bar.mm / 2;
     doc.setDrawColor(...INK);
     doc.setLineWidth(0.18);
@@ -387,13 +334,13 @@ function drawCartouche(
     doc.triangle(bx, by, bx + 1.6, by - 0.75, bx + 1.6, by + 0.75, 'F');
     doc.triangle(bx + bar.mm, by, bx + bar.mm - 1.6, by - 0.75, bx + bar.mm - 1.6, by + 0.75, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.4 * fs);
-    doc.text(`${formatMeters(bar.meters)} m`, leftCx, at(43.2), { align: 'center' });
+    doc.setFontSize(6.2 * fs);
+    doc.text(`${formatMeters(bar.meters)} m`, leftCx, at(38), { align: 'center' });
   }
-  boxRule(doc, at(44.6));
+  boxRule(doc, at(38.6));
 
-  // coordonnées du centre du plan (la DS maximale n'est plus imprimée)
-  statRow(doc, at(48.6), 'Coordonnées', formatCoord(plan.center[0], plan.center[1], 5), fs);
+  // coordonnées du centre du plan
+  statRow(doc, at(42.2), 'Coordonnées', formatCoord(plan.center[0], plan.center[1], 5), fs);
 }
 
 /** Flèche du nord. */
@@ -423,7 +370,7 @@ export async function buildPdf(
   const [lat] = plan.center;
   const showCompany = !companyIsEmpty(company);
   // le bloc entreprise prend de la hauteur : la carte cède la place correspondante
-  const maxH = showCompany ? MAP.maxH - 24 : MAP.maxH;
+  const maxH = showCompany ? MAP.maxH - 15 : MAP.maxH;
   const target = MAP.w / maxH; // format du plan sur la page
 
   drawFrame(doc);

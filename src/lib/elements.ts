@@ -148,6 +148,24 @@ export function sanitizePlan(p: Plan): Plan {
   };
 }
 
+/** Mètres -> degrés (approximation locale suffisante pour un décalage d'icône). */
+export function metersToDegrees(lat: number, meters: number): [number, number] {
+  const dLat = meters / 111_320;
+  const dLng = meters / (111_320 * Math.cos((lat * Math.PI) / 180) || 1);
+  return [dLat, dLng];
+}
+
+/**
+ * Copie d'un élément : nouvel identifiant, même forme, décalée de `meters`
+ * pour que la copie ne se superpose pas à l'original.
+ */
+export function cloneElement(el: PElement, id: string, meters = 0): PElement {
+  const [dLat, dLng] = metersToDegrees(el.lat, meters);
+  const copy: PElement = { ...el, id, lat: el.lat + dLat, lng: el.lng + dLng };
+  if (el.ring) copy.ring = el.ring.map(([la, ln]) => [la + dLat, ln + dLng] as [number, number]);
+  return copy;
+}
+
 /** couleur effective d'un élément (couleur perso prioritaire). */
 export const colorOf = (e: { kind: Kind; color?: string }) => e.color || KIND_META[e.kind].color;
 

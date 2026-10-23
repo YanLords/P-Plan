@@ -5,6 +5,19 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+## [0.3.7] — 2026-10-23
+
+### Ajouté
+
+- **Copier / coller / dupliquer** un élément : `⌘C`, `⌘V`, `⌘D` (Ctrl sur Windows) et menu contextuel au clic droit sur la carte — Dupliquer, Copier, Coller, Supprimer ; sur une zone vide, « Coller ici » pose la copie à l'endroit cliqué. La copie est décalée d'environ 8 m pour ne pas se superposer à l'original.
+
+### Modifié
+
+- **Légende PDF** : le barriérage tient sur une seule ligne, avec la **somme** des longueurs à couvrir ; les artifices sont regroupés **par couleur** (une ligne par teinte, avec les DS rencontrées).
+- **Cartouche PDF** plus compact (44 mm au lieu de 51, bloc entreprise 19 mm au lieu de 22) : la carte récupère la place gagnée.
+- **Adresse** : la commune est extraite aussi bien d'un libellé BAN (« 12 Rue de la Loge, 34000 Montpellier ») que Nominatim, et l'adresse complète est imprimée sous le nom de la commune (jusqu'à deux lignes).
+- Les raccourcis d'édition ne se déclenchent plus quand le curseur est dans un champ de saisie (⌘C y copie le texte, pas l'élément).
+
 ## [0.3.6] — 2026-10-23
 
 ### Ajouté

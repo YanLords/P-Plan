@@ -1,9 +1,11 @@
 import type { Update } from '@tauri-apps/plugin-updater';
+import { shouldAnnounce } from './changelog';
 
 /** Délai minimal entre deux redémarrages (garde-fou anti-boucle). */
 export const RESTART_COOLDOWN_MS = 20_000;
 const RESTART_KEY = 'plan-de-feu:last-restart';
 const VERSION_KEY = 'plan-de-feu:last-version';
+const PENDING_KEY = 'plan-de-feu:pending-changelog';
 
 const isTauri = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
@@ -58,12 +60,17 @@ class UpdaterStore {
     }
   }
 
-  /** Première version inconnue = installation neuve : on n'affiche rien. */
   #trackVersion(version: string): void {
     if (!version) return;
     try {
-      const seen = localStorage.getItem(VERSION_KEY);
-      if (seen && seen !== version) this.freshVersion = version;
+      const announce = shouldAnnounce({
+        version,
+        seen: localStorage.getItem(VERSION_KEY),
+        pending: localStorage.getItem(PENDING_KEY),
+        used: !!localStorage.getItem('plan-de-feu:autosave'),
+      });
+      if (announce) this.freshVersion = version;
+      localStorage.removeItem(PENDING_KEY);
       localStorage.setItem(VERSION_KEY, version);
     } catch {
       /* stockage indisponible : pas de rappel des nouveautés */
@@ -135,6 +142,12 @@ class UpdaterStore {
         }
       });
       this.state = 'ready';
+      // la version installée au redémarrage doit annoncer ses nouveautés
+      try {
+        localStorage.setItem(PENDING_KEY, this.#update.version);
+      } catch {
+        /* stockage indisponible : le suivi de version fera le tri */
+      }
       await this.restart();
     } catch (err) {
       this.state = 'error';

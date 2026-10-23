@@ -1,7 +1,7 @@
 {
   "name": "plan-de-feu",
   "private": true,
-  "version": "0.3.4",
+  "version": "0.3.5",
   "type": "module",
   "description": "Planete Plan — générateur local de plans de disposition de feux d'artifice",
   "scripts": {

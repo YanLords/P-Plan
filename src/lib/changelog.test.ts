@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { changelogFor } from './changelog.ts';
+import { changelogFor, shouldAnnounce } from './changelog.ts';
 
 const SAMPLE = `# Journal
 
@@ -39,6 +39,20 @@ test('lit la section de la version demandée', () => {
 test('ne déborde pas sur la version suivante', () => {
   const entry = changelogFor('1.2.2', SAMPLE);
   assert.deepEqual(entry?.groups.flatMap((g) => g.items), ['Ancien point.']);
+});
+
+test('annonce des nouveautés : règles de déclenchement', () => {
+  const base = { version: '1.0.0', seen: null, pending: null, used: false };
+  // mise à jour installée par l'app : marqueur posé avant redémarrage
+  assert.equal(shouldAnnounce({ ...base, pending: '1.0.0' }), true);
+  // version vue au lancement précédent, différente
+  assert.equal(shouldAnnounce({ ...base, seen: '0.9.0' }), true);
+  assert.equal(shouldAnnounce({ ...base, seen: '1.0.0' }), false);
+  // première version qui suit une release antérieure au suivi de version
+  assert.equal(shouldAnnounce({ ...base, used: true }), true);
+  // installation neuve : rien à annoncer
+  assert.equal(shouldAnnounce(base), false);
+  assert.equal(shouldAnnounce({ ...base, version: '' }), false);
 });
 
 test('le balisage markdown est retiré', () => {

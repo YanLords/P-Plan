@@ -13,6 +13,25 @@ export interface ChangelogEntry {
 }
 
 /**
+ * Faut-il annoncer les nouveautés de la version courante ?
+ * - `pending` : l'app a elle-même installé cette version (marqueur posé avant redémarrage) ;
+ * - `seen` : version vue au lancement précédent, différente de la courante ;
+ * - sinon, première version qui suit une mise à jour faite par une release
+ *   antérieure au suivi de version (le plan autosauvegardé prouve l'usage).
+ */
+export function shouldAnnounce(o: {
+  version: string;
+  seen: string | null;
+  pending: string | null;
+  used: boolean;
+}): boolean {
+  if (!o.version) return false;
+  if (o.pending === o.version) return true;
+  if (o.seen) return o.seen !== o.version;
+  return o.used;
+}
+
+/**
  * Section du journal des modifications pour une version donnée.
  * `text` est le CHANGELOG.md embarqué dans le binaire (`?raw`) : pas d'appel
  * réseau, et les nouveautés affichées sont celles du code réellement installé.

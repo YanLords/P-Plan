@@ -5,6 +5,12 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+## [0.3.6] — 2026-10-23
+
+### Ajouté
+
+- Nouvel élément **Bouée** (raccourci `u`, orange) : icône de bouée de sauvetage, point déplaçable, fusionnée en une seule ligne de légende dans le PDF quand elle est posée plusieurs fois.
+
 ## [0.3.5] — 2026-10-23
 
 ### Corrigé

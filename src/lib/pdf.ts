@@ -20,7 +20,7 @@ const CART = { x: 8, w: 122 };
 const LEG = { x: 136, w: 153, bottom: 195 };
 const FOOT_Y = 199;
 /** Types regroupés en une seule ligne de légende (un seul point d'eau, un seul extincteur…). */
-const MERGED: Kind[] = ['point_eau', 'extincteur', 'son', 'accueil_secours', 'surveillance'];
+const MERGED: Kind[] = ['point_eau', 'bouee', 'extincteur', 'son', 'accueil_secours', 'surveillance'];
 
 const INK: [number, number, number] = [26, 26, 26];
 const MUTED: [number, number, number] = [110, 110, 110];

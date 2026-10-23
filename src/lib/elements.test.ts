@@ -22,6 +22,7 @@ test('types retirés (échelle, accès secours) écartés à la relecture', () =
 
 test('nouveaux types déclarés partout (métadonnées, rail, tracés)', () => {
   assert.ok(KNOWN_KINDS.includes('son') && KNOWN_KINDS.includes('bateau'));
+  assert.equal(KIND_META.bouee.label, 'Bouée');
   assert.equal(KIND_META.sortie.label, 'Voie accès secours');
   assert.ok(isFond('bateau') && !isFond('artifice'));
 });

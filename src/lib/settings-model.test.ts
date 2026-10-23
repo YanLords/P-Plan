@@ -25,6 +25,7 @@ test('raccourcis par défaut : ceux de la spécification', () => {
     sortie: 'o',
     accueil_secours: 'q',
     point_eau: 'e',
+    bouee: 'u',
     extincteur: 'w',
     son: 's',
     bateau: 'f',

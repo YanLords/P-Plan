@@ -92,6 +92,9 @@ npm run build           # frontend seul (dist/)
 npm run tauri:build     # .app/.dmg (macOS) ou .msi/.exe (Windows)
 ```
 
+Partager l'app sur un autre Mac (blocage Gatekeeper, notarisation) : voir
+[docs/partage-macos.md](docs/partage-macos.md).
+
 ## Tests
 
 ```bash

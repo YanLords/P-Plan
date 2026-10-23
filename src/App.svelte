@@ -5,6 +5,7 @@
   import PanelProps from './lib/PanelProps.svelte';
   import SettingsPanel from './lib/SettingsPanel.svelte';
   import UpdateToast from './lib/UpdateToast.svelte';
+  import WhatsNew from './lib/WhatsNew.svelte';
   import { store } from './lib/store.svelte';
   import { LS_KEY } from './lib/store.svelte';
   import { settings } from './lib/settings.svelte';
@@ -211,6 +212,7 @@
         <SettingsPanel onClose={() => (showSettings = false)} />
       {/if}
       <UpdateToast />
+      <WhatsNew />
       {#if busy}
         <div class="busy">Génération du PDF…</div>
       {/if}

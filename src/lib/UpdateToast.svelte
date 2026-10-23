@@ -48,7 +48,7 @@
     position: fixed;
     right: 18px;
     bottom: 18px;
-    z-index: 60;
+    z-index: 900;
     width: 300px;
     padding: 12px 14px 13px;
     border-radius: 12px;

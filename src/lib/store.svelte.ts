@@ -181,6 +181,15 @@ class PlanStore {
     el.lng = at[1];
   }
 
+  /** Déplace un élément entier de (dLat, dLng) : une zone suit sommet par sommet. */
+  moveBy(id: string, dLat: number, dLng: number) {
+    const el = this.plan.elements.find((e) => e.id === id);
+    if (!el) return;
+    el.lat += dLat;
+    el.lng += dLng;
+    if (el.ring) el.ring = el.ring.map(([la, ln]) => [la + dLat, ln + dLng] as [number, number]);
+  }
+
   moveVertex(id: string, index: number, at: [number, number]) {
     const el = this.plan.elements.find((e) => e.id === id);
     if (!el?.ring?.[index]) return;

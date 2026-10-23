@@ -170,12 +170,17 @@
       const sel = store.selection === e.id;
       const color = colorOf(e);
 
+      // contour et poignées d'une zone : suivis en direct quand on glisse son icône
+      let zoneShape: L.Polygon | null = null;
+      const handles: L.Marker[] = [];
+
       if (e.ring && e.ring.length > 1 && !e.pointMode) {
         const baseW = isZone(e.kind) ? 2 : 3;
         const isSortie = e.kind === 'sortie';
         const shape = isZone(e.kind)
           ? L.polygon(e.ring, { color, weight: baseW, fillColor: color, fillOpacity: 0.12 })
           : L.polyline(e.ring, { color, weight: baseW });
+        if (isZone(e.kind)) zoneShape = shape as L.Polygon;
         shape.addTo(overlay!).on('click', () => store.select(e.id));
         strokes.push({ layer: shape, base: baseW });
 
@@ -200,6 +205,7 @@
         if (sel) {
           e.ring.forEach((p, idx) => {
             const h = L.marker(p, { icon: handleIcon(), draggable: true, zIndexOffset: 600 }).addTo(overlay!);
+            handles.push(h);
             h.on('dragend', () => {
               const ll = h.getLatLng();
               store.moveVertex(e.id, idx, [ll.lat, ll.lng]);
@@ -240,6 +246,17 @@
           }).addTo(overlay!);
           strokes.push({ layer: ray, base: 1 });
 
+          // la bulle du rayon reste affichée sur le plan (pas seulement à la souris)
+          if (settings.value.showLabels) {
+            ray.bindTooltip(`<b style="color:${color}">DS ${ds} m</b>`, {
+              permanent: true,
+              direction: 'top',
+              offset: [0, -3],
+              opacity: 1,
+              className: 'pf-ds',
+            });
+          }
+
           // poignée de réglage du rayon, à l'est du point (axe carte)
           if (sel) {
             const g = L.marker(at, { icon: radiusIcon(), draggable: true, zIndexOffset: 700 }).addTo(overlay!);
@@ -274,21 +291,45 @@
         }
       }
 
-      // une zone/ligne se déplace par ses sommets : l'icône reste au centre
+      // un point se déplace à l'icône ; une zone aussi (tout le contour suit),
+      // un tracé se déplace par ses sommets
+      const movable = !e.ring || isZone(e.kind) || !!e.pointMode;
       const m = L.marker([e.lat, e.lng], {
         icon: pin(e, sel),
-        draggable: !e.ring || !!e.pointMode,
+        draggable: movable,
         zIndexOffset: 300,
       }).addTo(overlay!);
       m.bindTooltip(`${i + 1}. ${e.label}`, { direction: 'top', offset: [0, -14], opacity: 0.95 });
       if (!settings.value.showLabels) m.unbindTooltip();
+      let from: L.LatLng | null = null;
+      m.on('dragstart', () => {
+        from = m.getLatLng();
+      });
       m.on('drag', (ev) => {
         const ll = (ev as L.LeafletEvent & { latlng?: L.LatLng }).latlng ?? m.getLatLng();
+        // aperçu : le contour et ses poignées suivent l'icône pendant le geste
+        if (zoneShape && e.ring && from) {
+          const dLat = ll.lat - from.lat;
+          const dLng = ll.lng - from.lng;
+          zoneShape.setLatLngs(e.ring.map(([la, ln]) => [la + dLat, ln + dLng] as [number, number]));
+          handles.forEach((h, idx) => {
+            const p = e.ring?.[idx];
+            if (p) h.setLatLng([p[0] + dLat, p[1] + dLng]);
+          });
+        }
         onPinDrag?.(ll);
       });
       m.on('dragend', () => {
         const ll = m.getLatLng();
-        store.moveTo(e.id, [ll.lat, ll.lng]);
+        const start = from;
+        from = null;
+        if (start && e.ring) {
+          // la zone entière (sommet par sommet) suit le déplacement de l'icône
+          store.moveBy(e.id, ll.lat - start.lat, ll.lng - start.lng);
+          draw();
+        } else {
+          store.moveTo(e.id, [ll.lat, ll.lng]);
+        }
       });
       m.on('click', (ev) => {
         L.DomEvent.stopPropagation(ev);

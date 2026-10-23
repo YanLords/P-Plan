@@ -5,6 +5,12 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+## [0.3.2] — 2026-10-23
+
+### Modifié
+
+- En-tête du plan : **titre**, **lieu** et **date** sont maintenant des champs encadrés avec libellé, lisibles en permanence. Avant, les deux premiers étaient transparents et n'apparaissaient qu'au survol, et la date se perdait dans la barre.
+
 ## [0.3.1] — 2026-10-22
 
 ### Ajouté

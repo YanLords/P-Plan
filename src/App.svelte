@@ -163,21 +163,27 @@
 
   <div class="work">
     <header class="topbar">
-      <div class="titles">
-        <input class="title" bind:value={store.plan.titre} spellcheck="false" aria-label="Titre du plan" />
-        <input
-          class="site"
-          bind:value={store.plan.site}
-          spellcheck="false"
-          placeholder="Lieu : ville, adresse, lieu-dit…"
-          aria-label="Lieu du spectacle (ville, adresse)"
-          title="Lieu du spectacle — ville et adresse imprimées sur le plan"
-        />
+      <div class="fields">
+        <label class="field g-title">
+          <span>Titre du plan</span>
+          <input class="title" bind:value={store.plan.titre} spellcheck="false" aria-label="Titre du plan" />
+        </label>
+        <label class="field g-site">
+          <span>Lieu</span>
+          <input
+            class="site"
+            bind:value={store.plan.site}
+            spellcheck="false"
+            placeholder="Ville, adresse, lieu-dit…"
+            aria-label="Lieu du spectacle (ville, adresse)"
+            title="Lieu du spectacle — ville et adresse imprimées sur le plan"
+          />
+        </label>
+        <label class="field g-date">
+          <span>Date</span>
+          <input class="date-input" type="date" bind:value={store.plan.date} aria-label="Date du plan" />
+        </label>
       </div>
-      <label class="date">
-        <span>Date</span>
-        <input type="date" bind:value={store.plan.date} />
-      </label>
       <div class="stats">
         <span><b>{store.artifices.length}</b> artifices</span>
         <span><b>{store.maxDs}</b> m DS max</span>
@@ -231,7 +237,7 @@
   }
 
   .topbar {
-    height: 52px;
+    height: 64px;
     flex: none;
     display: flex;
     align-items: center;
@@ -241,98 +247,96 @@
     background: #fff;
   }
 
-  .titles {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    min-width: 200px;
-    max-width: 380px;
-    flex: 0 1 auto;
-  }
-
-  .title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
-    border: 1px solid transparent;
-    border-radius: 8px;
-    padding: 4px 8px 2px;
-    width: 340px;
-    min-width: 200px;
-    max-width: 380px;
-    flex: 0 1 auto;
-    outline: none;
-  }
-
-  .site {
-    font-size: 11px;
-    color: var(--text-muted);
-    border: 1px solid transparent;
-    border-radius: 8px;
-    padding: 0 8px 4px;
-    width: 340px;
-    min-width: 200px;
-    max-width: 380px;
-    outline: none;
-  }
-
-  .site:hover,
-  .site:focus {
-    background: var(--bg-surface);
-    border-color: var(--border);
-    color: var(--text-primary);
-  }
-
-  .title:hover {
-    background: var(--bg-surface);
-  }
-
-  .title:focus {
-    border-color: var(--accent);
-    background: #fff;
-  }
-
-  .date {
+  .fields {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    font-weight: 600;
-    color: var(--text-secondary);
+    gap: 10px;
   }
 
-  .date input {
+  /* chaque champ de l'en-tête est cadré : on doit voir où l'on écrit */
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .field > span {
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    padding-left: 2px;
+  }
+
+  .g-title {
+    flex: 1 1 230px;
+    max-width: 380px;
+  }
+
+  .g-site {
+    flex: 1 1 200px;
+    max-width: 360px;
+  }
+
+  .g-date {
+    flex: none;
+    width: 146px;
+  }
+
+  .field input {
+    width: 100%;
     border: 1px solid var(--border-card);
     border-radius: 8px;
-    padding: 5px 8px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-primary);
     background: #fff;
-    color-scheme: light;
-  }
-
-  .date input:hover {
-    border-color: var(--accent);
-  }
-
-  .date input:focus {
+    padding: 6px 9px;
+    font-size: 13px;
+    color: var(--text-primary);
     outline: none;
+  }
+
+  .field input::placeholder {
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .field input:hover {
+    border-color: var(--border, #c9c9c9);
+  }
+
+  .field input:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-light);
   }
 
+  .title {
+    font-size: 14.5px;
+    font-weight: 600;
+  }
+
+  .site {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+  }
+
+  .date-input {
+    font-size: 12.5px;
+    font-weight: 500;
+    color-scheme: light;
+  }
+
   /* l'icône du calendrier doit se voir, c'est le seul moyen d'ouvrir le sélecteur */
-  .date input::-webkit-calendar-picker-indicator {
+  .date-input::-webkit-calendar-picker-indicator {
     width: 16px;
     height: 16px;
     opacity: 0.8;
     cursor: pointer;
   }
 
-  .date input::-webkit-calendar-picker-indicator:hover {
+  .date-input::-webkit-calendar-picker-indicator:hover {
     opacity: 1;
   }
 

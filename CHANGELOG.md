@@ -5,6 +5,13 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+## [0.3.3] — 2026-10-23
+
+### Modifié
+
+- Les binaires macOS sont désormais signés en **ad-hoc** (`signingIdentity: "-"`) : le bundle est signé dans son ensemble, ce qui évite les variantes « application endommagée » et rend l'ouverture par clic droit fiable.
+- Les notes de release rappellent la procédure de première ouverture sur macOS (clic droit → Ouvrir, ou `xattr -dr com.apple.quarantine`) et sur Windows (SmartScreen), et précisent que les mises à jour suivantes ne redéclenchent pas l'alerte.
+
 ## [0.3.2] — 2026-10-23
 
 ### Modifié

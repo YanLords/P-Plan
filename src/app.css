@@ -161,6 +161,22 @@ textarea {
   color: var(--text-primary);
 }
 
+/* étiquette du rayon de sécurité, en permanence sur le plan */
+.leaflet-tooltip.pf-ds {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
+  padding: 1px 6px;
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.leaflet-tooltip.pf-ds::before {
+  display: none;
+}
+
 .leaflet-bar a {
   color: #333;
 }

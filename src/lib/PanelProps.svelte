@@ -80,7 +80,9 @@
           {/if}
           <span>{el.ring.length} sommets</span>
         {/if}
-        <span class="hint">glissez les poignées sur la carte</span>
+        <span class="hint">
+          {isZone(el.kind) ? 'glissez les poignées, ou l’icône pour déplacer toute la zone' : 'glissez les poignées sur la carte'}
+        </span>
       </div>
     {/if}
 

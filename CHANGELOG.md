@@ -5,6 +5,13 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+## [0.3.1] — 2026-10-22
+
+### Ajouté
+
+- Déplacement d'une **zone entière** en glissant son icône : le contour et les poignées suivent le geste, tous les sommets sont translatés ensemble.
+- La **bulle du rayon de sécurité** (« DS 40 m ») reste affichée sur le plan, dans la couleur de l'artifice, au lieu de n'apparaître qu'à la souris.
+
 ## [0.3.0] — 2026-10-22
 
 ### Ajouté

@@ -3,6 +3,7 @@ import type { Update } from '@tauri-apps/plugin-updater';
 /** Délai minimal entre deux redémarrages (garde-fou anti-boucle). */
 export const RESTART_COOLDOWN_MS = 20_000;
 const RESTART_KEY = 'plan-de-feu:last-restart';
+const VERSION_KEY = 'plan-de-feu:last-version';
 
 const isTauri = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
@@ -40,6 +41,8 @@ class UpdaterStore {
   cooldown = $state(0);
   /** « Plus tard » : masquée jusqu'au prochain lancement (état de session) */
   dismissed = $state(false);
+  /** version fraîchement installée : ses nouveautés sont à montrer une fois */
+  freshVersion = $state('');
 
   #update: Update | null = null;
 
@@ -49,9 +52,27 @@ class UpdaterStore {
     try {
       const { getVersion } = await import('@tauri-apps/api/app');
       this.version = await getVersion();
+      this.#trackVersion(this.version);
     } catch {
       /* version inconnue : l'interface reste utilisable */
     }
+  }
+
+  /** Première version inconnue = installation neuve : on n'affiche rien. */
+  #trackVersion(version: string): void {
+    if (!version) return;
+    try {
+      const seen = localStorage.getItem(VERSION_KEY);
+      if (seen && seen !== version) this.freshVersion = version;
+      localStorage.setItem(VERSION_KEY, version);
+    } catch {
+      /* stockage indisponible : pas de rappel des nouveautés */
+    }
+  }
+
+  /** Les nouveautés ont été lues : on ne les remontre pas. */
+  dismissFresh(): void {
+    this.freshVersion = '';
   }
 
   /** Vérifie les mises à jour ; `silent` évite de déranger au démarrage. */

@@ -5,6 +5,13 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+## [0.3.4] — 2026-10-23
+
+### Ajouté
+
+- **Fenêtre « Nouveautés »** à la première ouverture qui suit une mise à jour : le journal des modifications est embarqué dans le binaire et la section de la version installée s'affiche une seule fois, avec un bouton « J'ai lu ». Un CHANGELOG livré sans section pour la version courante ne bloque rien.
+- Les notes publiées dans `latest.json` reprennent désormais le contenu du CHANGELOG : l'encart de mise à jour annonce les vraies nouveautés au lieu d'un simple numéro de version.
+
 ## [0.3.3] — 2026-10-23
 
 ### Modifié

@@ -127,6 +127,24 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@v4
+
+      # notes de version = section du CHANGELOG (affichées par l'encart de mise à jour)
+      - name: Notes de la version
+        shell: bash
+        run: |
+          python3 - "${{ github.ref_name }}" > "$RUNNER_TEMP/notes.json" <<'PY'
+          import json, re, sys
+          tag = sys.argv[1]
+          version = tag[1:] if tag.startswith('v') else tag
+          text = open('CHANGELOG.md', encoding='utf-8').read()
+          m = re.search(r'^## \[' + re.escape(version) + r'\][^\n]*\n(.*?)(?=^## \[|\Z)', text, re.S | re.M)
+          body = (m.group(1) if m else '').strip()
+          body = re.sub(r'^### ', '', body, flags=re.M)
+          body = re.sub(r'\n{3,}', '\n\n', body)
+          print(json.dumps(('Planete Plan ' + version + ('\n\n' + body if body else '')).strip()))
+          PY
+
       - name: Manifeste latest.json du dépôt public
         shell: bash
         env:
@@ -145,8 +163,9 @@ jobs:
           X64=$(ls Planete.Plan_x64.app.tar.gz 2>/dev/null | head -1)
           # Windows : l'artefact de mise à jour est l'installeur NSIS (-setup.exe)
           WIN=$(ls *_x64-setup.exe 2>/dev/null | head -1)
+          NOTES=$(cat "$RUNNER_TEMP/notes.json")
           {
-            printf '{\n  "version": "%s",\n  "notes": "Planete Plan %s",\n  "pub_date": "%s",\n  "platforms": {' "$VERSION" "$VERSION" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            printf '{\n  "version": "%s",\n  "notes": %s,\n  "pub_date": "%s",\n  "platforms": {' "$VERSION" "$NOTES" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             first=1
             add() {
               if [ -n "$3" ]; then

@@ -8,6 +8,9 @@
     "allowJs": true,
     "checkJs": true,
     "isolatedModules": true,
+    "noEmit": true,
+    // les tests node importent les modules avec leur extension réelle
+    "allowImportingTsExtensions": true,
     "moduleDetection": "force",
     "types": ["vite/client"]
   },

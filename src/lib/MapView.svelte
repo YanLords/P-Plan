@@ -17,6 +17,8 @@
   let measureLine: L.Polyline | null = null;
   let measureTip: L.Tooltip | null = null;
   let measureFrom: L.LatLng | null = null;
+  /** menu contextuel (clic droit) : élément visé ou simple point de collage */
+  let menu = $state<{ x: number; y: number; id: string | null; at: [number, number] } | null>(null);
   let measureMoved = false;
   let baseKey: 'osm' | 'sat' | null = null;
   let baseLayer: L.TileLayer | null = null;
@@ -181,7 +183,10 @@
           ? L.polygon(e.ring, { color, weight: baseW, fillColor: color, fillOpacity: 0.12 })
           : L.polyline(e.ring, { color, weight: baseW });
         if (isZone(e.kind)) zoneShape = shape as L.Polygon;
-        shape.addTo(overlay!).on('click', () => store.select(e.id));
+        shape
+          .addTo(overlay!)
+          .on('click', () => store.select(e.id))
+          .on('contextmenu', (ev) => openMenu(ev as L.LeafletMouseEvent, e.id));
         strokes.push({ layer: shape, base: baseW });
 
         if (isSortie && e.ring.length > 1) {
@@ -335,8 +340,27 @@
         L.DomEvent.stopPropagation(ev);
         store.select(e.id);
       });
+      m.on('contextmenu', (ev) => openMenu(ev as L.LeafletMouseEvent, e.id));
     });
     if (printBoost) setPrintBoost(true);
+  }
+
+  function closeMenu() {
+    menu = null;
+  }
+
+  function openMenu(ev: L.LeafletMouseEvent, id: string | null) {
+    // un événement Leaflet porte la souris dans `originalEvent`
+    const mouse = (ev.originalEvent ?? ev) as MouseEvent;
+    mouse.preventDefault?.();
+    mouse.stopPropagation?.();
+    const at: [number, number] = ev.latlng ? [ev.latlng.lat, ev.latlng.lng] : store.plan.center;
+    if (id) store.select(id);
+    // position dans le repère de la carte (le menu est rendu dans .ui)
+    const box = el?.getBoundingClientRect();
+    const x = Math.min(mouse.clientX - (box?.left ?? 0), (box?.width ?? 0) - 190);
+    const y = Math.min(mouse.clientY - (box?.top ?? 0), (box?.height ?? 0) - 170);
+    menu = { x: Math.max(8, x), y: Math.max(8, y), id, at };
   }
 
   function drawDraft() {
@@ -470,7 +494,12 @@
       store.plan.zoom = m.getZoom();
     });
 
+    m.on('contextmenu', (ev: L.LeafletMouseEvent) => openMenu(ev, null));
+    // pas de menu contextuel natif du navigateur sur la carte
+    L.DomEvent.on(el, 'contextmenu', (e) => e.preventDefault());
+
     m.on('click', (ev: L.LeafletMouseEvent) => {
+      closeMenu();
       const at: [number, number] = [ev.latlng.lat, ev.latlng.lng];
       places = [];
       if (isKindTool(store.tool) && isShape(store.tool)) store.addVertex(at);
@@ -686,6 +715,29 @@
   {/if}
 
   <div class="hint">{hint}</div>
+
+  {#if menu}
+    <div class="menu" style="left:{menu.x}px; top:{menu.y}px" role="menu">
+      {#if menu.id}
+        <button role="menuitem" onclick={() => { store.duplicate(menu?.id ?? null); closeMenu(); }}>
+          Dupliquer <kbd>⌘D</kbd>
+        </button>
+        <button role="menuitem" onclick={() => { store.copy(menu?.id ?? null); closeMenu(); }}>
+          Copier <kbd>⌘C</kbd>
+        </button>
+        <button role="menuitem" disabled={!store.clipboard} onclick={() => { store.paste(menu?.at); closeMenu(); }}>
+          Coller <kbd>⌘V</kbd>
+        </button>
+        <button class="danger" role="menuitem" onclick={() => { if (menu?.id) store.remove(menu.id); closeMenu(); }}>
+          Supprimer <kbd>⌫</kbd>
+        </button>
+      {:else}
+        <button role="menuitem" disabled={!store.clipboard} onclick={() => { store.paste(menu?.at); closeMenu(); }}>
+          Coller ici <kbd>⌘V</kbd>
+        </button>
+      {/if}
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -863,6 +915,54 @@
   .draft-bar button:disabled {
     opacity: 0.45;
     cursor: not-allowed;
+  }
+
+  .menu {
+    position: absolute;
+    z-index: 700;
+    pointer-events: auto;
+    min-width: 176px;
+    padding: 4px;
+    background: #fff;
+    border: 1px solid var(--border-card);
+    border-radius: 9px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .menu button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    width: 100%;
+    text-align: left;
+    font-size: 12px;
+    font-family: inherit;
+    color: var(--text-primary);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+
+  .menu button:hover:not(:disabled) {
+    background: var(--accent-light);
+  }
+
+  .menu button:disabled {
+    opacity: 0.42;
+    cursor: default;
+  }
+
+  .menu button.danger {
+    color: var(--error);
+  }
+
+  .menu kbd {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
   }
 
   .hint {

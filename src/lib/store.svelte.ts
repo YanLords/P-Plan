@@ -1,5 +1,5 @@
 import type { Kind, PElement, Plan, Tool } from './elements';
-import { KIND_META, sanitizePlan, isKindTool, isShape, isZone } from './elements';
+import { KIND_META, cloneElement, isKindTool, isShape, isZone, sanitizePlan } from './elements';
 import { History } from './history';
 import { snapDistance, ringCentroid } from './geo';
 import { settings } from './settings.svelte';
@@ -42,6 +42,8 @@ class PlanStore {
   hasRedo = $state(false);
   /** compteur de révision : force le redessin après une mutation profonde */
   rev = $state(0);
+  /** presse-papier interne (⌘C / ⌘V) : un élément copié, prêt à être collé */
+  clipboard = $state<PElement | null>(null);
 
   #hist = new History(JSON.stringify(loadLocal()));
 
@@ -136,6 +138,42 @@ class PlanStore {
     this.plan.elements.push(el);
     this.selection = el.id;
     return el;
+  }
+
+  /** Copie l'élément sélectionné dans le presse-papier interne. */
+  copy(id: string | null = this.selection): boolean {
+    const el = this.plan.elements.find((e) => e.id === id);
+    if (!el) return false;
+    this.clipboard = cloneElement(el, el.id, 0);
+    return true;
+  }
+
+  /** Colle le presse-papier, décalé de ~8 m ou centré sur `at` si fourni. */
+  paste(at?: [number, number]): PElement | null {
+    const src = this.clipboard;
+    if (!src) return null;
+    const copy = cloneElement(src, crypto.randomUUID(), at ? 0 : 8);
+    if (at) {
+      const [dLat, dLng] = [at[0] - src.lat, at[1] - src.lng];
+      copy.lat = at[0];
+      copy.lng = at[1];
+      if (copy.ring) copy.ring = copy.ring.map(([la, ln]) => [la + dLat, ln + dLng] as [number, number]);
+    }
+    this.plan.elements.push(copy);
+    this.selection = copy.id;
+    this.rev++;
+    return copy;
+  }
+
+  /** Duplique un élément (⌘D) sans passer par le presse-papier. */
+  duplicate(id: string | null = this.selection): PElement | null {
+    const el = this.plan.elements.find((e) => e.id === id);
+    if (!el) return null;
+    const copy = cloneElement(el, crypto.randomUUID(), 8);
+    this.plan.elements.push(copy);
+    this.selection = copy.id;
+    this.rev++;
+    return copy;
   }
 
   /** Ajoute un sommet au tracé en cours. */

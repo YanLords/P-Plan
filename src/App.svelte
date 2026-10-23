@@ -122,6 +122,26 @@
       if (!busy) void onPdf();
       return;
     }
+    const target = e.target as HTMLElement | null;
+    const typing = !!target && /^(input|textarea|select)$/i.test(target.tagName);
+    if (typing) return;
+
+    // copier / coller / dupliquer : ⌘C, ⌘V, ⌘D (Ctrl sur Windows)
+    if (mod && (key === 'c' || key === 'v' || key === 'd')) {
+      if (!store.selection && key !== 'v') return;
+      e.preventDefault();
+      if (key === 'c') {
+        if (store.copy()) notify('Élément copié');
+      } else if (key === 'v') {
+        const copy = store.paste();
+        if (copy) notify('Élément collé');
+      } else {
+        const copy = store.duplicate();
+        if (copy) notify('Élément dupliqué');
+      }
+      return;
+    }
+
     if (mod && (key === 'z' || key === 'y')) {
       e.preventDefault();
       const redone = key === 'y' || e.shiftKey;
@@ -132,9 +152,6 @@
       }
       return;
     }
-
-    const t = e.target as HTMLElement | null;
-    if (t && /^(input|textarea|select)$/i.test(t.tagName)) return;
 
     // raccourcis d'outils (touches simples, configurables dans les réglages)
     if (!mod && !e.altKey && e.key.length === 1) {

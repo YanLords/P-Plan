@@ -116,6 +116,12 @@
 
     const mod = e.metaKey || e.ctrlKey;
     const key = e.key.toLowerCase();
+    // réglages : ⌘, / Ctrl+,
+    if (mod && key === ',') {
+      e.preventDefault();
+      showSettings = true;
+      return;
+    }
     // export PDF : ⌘E / Ctrl+E
     if (mod && key === 'e') {
       e.preventDefault();

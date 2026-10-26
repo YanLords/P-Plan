@@ -5,6 +5,16 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+## [0.3.9] — 2026-10-26
+
+### Ajouté
+
+- Raccourci **Réglages** : `⌘,` (Mac) ou `Ctrl+,` (Windows) ouvre le panneau des réglages.
+
+### Modifié
+
+- **Export PDF plus rapide** : la carte est capturée directement à la résolution imprimée (2000 px) en canvas, sans passer par un PNG intermédiaire. Le fichier produit est inchangé.
+
 ## [0.3.8] — 2026-10-26
 
 ### Corrigé

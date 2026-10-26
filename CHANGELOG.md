@@ -5,6 +5,16 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+## [0.3.8] — 2026-10-26
+
+### Corrigé
+
+- **Cartouche PDF** : l'adresse du spectacle n'est plus imprimée deux fois quand aucune commune n'est identifiable (par exemple « 12 Rue de la Loge », sans code postal). Elle apparaît une seule fois, en gros sous le titre.
+
+### Modifié
+
+- **Plan PDF** : la carte gagne 10 mm en hauteur (140 mm au lieu de 130). Le cartouche et la zone de légende cèdent cette place en bas de page.
+
 ## [0.3.7] — 2026-10-23
 
 ### Ajouté

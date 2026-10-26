@@ -9,7 +9,7 @@ import { cityOf, legendRowsFor, type LegRow } from './legend';
 
 // A4 paysage : carte pleine largeur en haut, cartouche (gauche) + légende (droite) dessous.
 const FRAME = { x: 8, y: 8, w: 281, h: 194 };
-const MAP = { x: 8, y: FRAME.y, w: 281, maxH: 130 };
+const MAP = { x: 8, y: FRAME.y, w: 281, maxH: 140 };
 const CART = { x: 8, w: 122 };
 const LEG = { x: 136, w: 153, bottom: 195 };
 const FOOT_Y = 199;
@@ -282,7 +282,10 @@ function drawCartouche(
   boxRule(doc, at(11.2));
 
   // commune en gros, puis l'adresse complète telle qu'elle a été saisie
+  // sans commune identifiable, cityOf renvoie l'adresse entière : elle n'est imprimée qu'une fois
+  const address = plan.site.trim();
   const city = cityOf(plan.site);
+  const addressIsCity = city === address;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13 * fs);
   doc.setTextColor(...INK);
@@ -291,8 +294,7 @@ function drawCartouche(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.8 * fs);
   doc.setTextColor(...MUTED);
-  const address = plan.site.trim();
-  if (address) {
+  if (address && !addressIsCity) {
     wrapText(doc, address, w - 8, 2).forEach((line, i) => doc.text(line, cx, at(20.4 + i * 3), { align: 'center' }));
   }
 

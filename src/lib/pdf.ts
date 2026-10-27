@@ -9,7 +9,7 @@ import { cityOf, legendRowsFor, type LegRow } from './legend';
 
 // A4 paysage : carte pleine largeur en haut, cartouche (gauche) + légende (droite) dessous.
 const FRAME = { x: 8, y: 8, w: 281, h: 194 };
-const MAP = { x: 8, y: FRAME.y, w: 281, maxH: 140 };
+const MAP = { x: 8, y: FRAME.y, w: 281, maxH: 145 };
 const CART = { x: 8, w: 122 };
 const LEG = { x: 136, w: 153, bottom: 195 };
 const FOOT_Y = 199;
@@ -223,7 +223,7 @@ function drawCartouche(
   // le cartouche se comprime quand la carte prend de la place (pas de troncature du plan)
   const DESIGN_H = 44 + S; // dernière ligne du dessin
   const k = Math.min(1, (h - 3.5) / DESIGN_H);
-  const fs = Math.max(0.8, k);
+  const fs = Math.max(0.7, k);
   // `sat` = coordonnées du bloc entreprise (avant le décalage S), `at` = contenu courant
   const sat = (v: number) => y0 + 2 + v * k;
   const at = (v: number) => y0 + 2 + (v + S) * k;
@@ -255,12 +255,12 @@ function drawCartouche(
     [company.address, company.phone, company.email, company.website]
       .filter(Boolean)
       .slice(0, 4)
-      .forEach((line, i) => doc.text(fitText(doc, line, textW), textX, sat(9.2 + i * 3.2)));
+      .forEach((line, i) => doc.text(fitText(doc, line, textW), textX, sat(9.2 + i * 2.9)));
 
     if (qr) {
       doc.addImage(qr, 'PNG', x + w - 3 - qrSize, sat(1.4), qrSize, qrSize, undefined, 'FAST');
     }
-    boxRule(doc, sat(18.2));
+    boxRule(doc, sat(19.4));
   }
 
   // titre

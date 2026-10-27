@@ -23,7 +23,47 @@
     Kind,
     string
   >;
+
+  // Zone public : un appui prolongé ouvre le choix zone / icône (comme les outils cachés de Photoshop)
+  const HOLD_MS = 450;
+  let menuOpen = $state(false);
+  let holdTimer: ReturnType<typeof setTimeout> | undefined;
+  let held = false;
+
+  function holdStart(k: Kind) {
+    if (k !== 'zone_public') return;
+    held = false;
+    holdTimer = setTimeout(() => {
+      held = true;
+      menuOpen = true;
+    }, HOLD_MS);
+  }
+
+  function holdEnd() {
+    clearTimeout(holdTimer);
+  }
+
+  function clickTool(k: Kind) {
+    // le clic qui suit un appui prolongé ne doit pas changer d'outil
+    if (held) {
+      held = false;
+      return;
+    }
+    store.setTool(k);
+  }
+
+  function pickPublic(icon: boolean) {
+    store.setPublicIcon(icon);
+    store.setTool('zone_public');
+    menuOpen = false;
+  }
 </script>
+
+<svelte:window
+  onpointerdown={(e) => {
+    if (menuOpen && !(e.target as HTMLElement).closest('.pub-wrap')) menuOpen = false;
+  }}
+/>
 
 <aside class="rail">
   <div class="brand" title="Planete Plan">
@@ -57,15 +97,38 @@
     </button>
 
     {#each TOOL_ORDER as k}
-      <button
-        class="item"
-        class:active={store.tool === k}
-        onclick={() => store.setTool(k)}
-        title={`${KIND_META[k].label} (${settings.value.shortcuts[k] || '—'})`}
-      >
-        <span class="ico" style="--c:{KIND_META[k].color}">{@html TOOL_ICON[k]}</span>
-        <span class="lbl">{KIND_META[k].label}</span>
-      </button>
+      {#if k === 'zone_public'}
+        <div class="pub-wrap">
+          <button
+            class="item"
+            class:active={store.tool === k}
+            onclick={() => clickTool(k)}
+            onpointerdown={() => holdStart(k)}
+            onpointerup={holdEnd}
+            onpointerleave={holdEnd}
+            title={`${KIND_META[k].label} — Tab bascule zone / icône, appui prolongé pour choisir (${settings.value.shortcuts[k] || '—'})`}
+          >
+            <span class="ico" style="--c:{KIND_META[k].color}">{@html TOOL_ICON[k]}</span>
+            <span class="lbl">{store.publicIcon ? 'Icône public' : KIND_META[k].label}</span>
+          </button>
+          {#if menuOpen}
+            <div class="pub-menu" role="menu">
+              <button role="menuitem" class:on={!store.publicIcon} onclick={() => pickPublic(false)}>Zone public</button>
+              <button role="menuitem" class:on={store.publicIcon} onclick={() => pickPublic(true)}>Icône zone public</button>
+            </div>
+          {/if}
+        </div>
+      {:else}
+        <button
+          class="item"
+          class:active={store.tool === k}
+          onclick={() => clickTool(k)}
+          title={`${KIND_META[k].label} (${settings.value.shortcuts[k] || '—'})`}
+        >
+          <span class="ico" style="--c:{KIND_META[k].color}">{@html TOOL_ICON[k]}</span>
+          <span class="lbl">{KIND_META[k].label}</span>
+        </button>
+      {/if}
     {/each}
   </nav>
 
@@ -166,6 +229,47 @@
     gap: 2px;
     color: var(--text-secondary);
     transition: background 0.15s ease;
+  }
+
+  .pub-wrap {
+    position: relative;
+  }
+
+  .pub-menu {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px;
+    margin-left: 6px;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--sidebar-border);
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  }
+
+  .pub-menu button {
+    padding: 7px 12px;
+    border: none;
+    border-radius: 7px;
+    background: none;
+    font: inherit;
+    font-size: 13px;
+    white-space: nowrap;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .pub-menu button:hover {
+    background: #f0f0f0;
+  }
+
+  .pub-menu button.on {
+    background: var(--accent-light);
   }
 
   .item:hover {

@@ -132,6 +132,14 @@
     const typing = !!target && /^(input|textarea|select)$/i.test(target.tagName);
     if (typing) return;
 
+    // zone public : Tab alterne zone tracée / icône (un clic)
+    if (e.key === 'Tab' && store.tool === 'zone_public') {
+      e.preventDefault();
+      store.setPublicIcon(!store.publicIcon);
+      notify(store.publicIcon ? 'Zone public : icône' : 'Zone public : zone');
+      return;
+    }
+
     // copier / coller / dupliquer : ⌘C, ⌘V, ⌘D (Ctrl sur Windows)
     if (mod && (key === 'c' || key === 'v' || key === 'd')) {
       if (!store.selection && key !== 'v') return;

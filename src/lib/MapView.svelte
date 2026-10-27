@@ -189,7 +189,7 @@
           .on('contextmenu', (ev) => openMenu(ev as L.LeafletMouseEvent, e.id));
         strokes.push({ layer: shape, base: baseW });
 
-        if (isSortie && e.ring.length > 1) {
+        if (isSortie && e.ring.length > 1 && !e.hideArrow) {
           const last = e.ring[e.ring.length - 1];
           const prev = e.ring[e.ring.length - 2];
           L.marker(last, {
@@ -502,7 +502,8 @@
       closeMenu();
       const at: [number, number] = [ev.latlng.lat, ev.latlng.lng];
       places = [];
-      if (isKindTool(store.tool) && isShape(store.tool)) store.addVertex(at);
+      if (store.drawsShape) store.addVertex(at);
+      else if (store.tool === 'zone_public' && store.publicIcon) store.addPoint('zone_public', at, { pointMode: true });
       else if (isKindTool(store.tool)) store.addPoint(store.tool, at);
       else store.select(null);
     });
@@ -556,7 +557,7 @@
     };
   });
 
-  const shaping = $derived(isKindTool(store.tool) && isShape(store.tool));
+  const shaping = $derived(store.drawsShape);
   const hint = $derived(
     store.tool === 'regle'
       ? 'Glissez pour mesurer une distance · Échap pour effacer'
@@ -565,7 +566,7 @@
         : shaping
           ? 'Cliquez les sommets · Entrée pour terminer'
           : isKindTool(store.tool)
-            ? `Cliquez sur la carte pour placer : ${KIND_META[store.tool].label}`
+            ? `Cliquez sur la carte pour placer : ${store.tool === 'zone_public' && store.publicIcon ? 'icône zone public' : KIND_META[store.tool].label}`
             : ''
   );
   // ---- Recherche de lieu : suggestions au fil de la saisie

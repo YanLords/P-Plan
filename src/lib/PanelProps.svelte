@@ -54,6 +54,19 @@
       </div>
     {/if}
 
+    {#if el.kind === 'sortie'}
+      <div class="field">
+        <span>Flèche</span>
+        <div class="seg">
+          <button class:on={!el.hideArrow} onclick={() => store.update(el.id, { hideArrow: false })}>Affichée</button>
+          <button class:on={!!el.hideArrow} onclick={() => store.update(el.id, { hideArrow: true })}>Masquée</button>
+        </div>
+      </div>
+      <button onclick={() => store.reverseLine(el.id)} title="La pointe de flèche suit le nouveau sens">
+        Inverser le sens
+      </button>
+    {/if}
+
     {#if el.kind === 'artifice' || isZone(el.kind) || el.kind === 'marqueur'}
       <label>
         <span>Couleur</span>

@@ -45,6 +45,19 @@ test('équipements répétés fusionnés, notes concaténées', () => {
   assert.equal(rows[0].note, 'poste 1 · poste 2');
 });
 
+test('zones public en icône : une seule ligne, zones en surface gardées', () => {
+  const rows = legendRowsFor(
+    plan([
+      { id: 'z1', kind: 'zone_public', label: 'Zone public', lat: 0, lng: 0, ring: [[0, 0], [0, 0.01], [0.01, 0.01]], pointMode: true },
+      { id: 'z2', kind: 'zone_public', label: 'Zone public', lat: 0, lng: 0, ring: [[0, 0], [0, 0.02], [0.02, 0.02]], pointMode: true },
+      { id: 'z3', kind: 'zone_public', label: 'Zone public', lat: 0, lng: 0, ring: [[0, 0], [0, 0.03], [0.03, 0.03]] },
+    ])
+  );
+  const icons = rows.filter((r) => r.kind === 'zone_public' && r.details === '');
+  assert.equal(icons.length, 1);
+  assert.equal(rows.filter((r) => r.kind === 'zone_public').length, 2);
+});
+
 test('commune extraite des formats BAN et Nominatim', () => {
   assert.equal(cityOf('Montpellier, Hérault, Occitanie, France'), 'Montpellier');
   assert.equal(cityOf('12 Rue de la Loge, 34000 Montpellier'), 'Montpellier');

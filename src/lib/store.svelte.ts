@@ -106,6 +106,29 @@ class PlanStore {
     if (t !== 'select') this.selection = null;
   }
 
+  /** Zone public placée en icône (un clic) au lieu d'une zone tracée (Tab pour alterner). */
+  publicIcon = $state(false);
+
+  setPublicIcon(on: boolean) {
+    this.publicIcon = on;
+    this.draft = [];
+  }
+
+  /** Vrai quand le clic ajoute un sommet (tracé) plutôt qu'un point. */
+  get drawsShape(): boolean {
+    return isKindTool(this.tool) && isShape(this.tool) && !(this.tool === 'zone_public' && this.publicIcon);
+  }
+
+  /** Inverse le sens d'un tracé (voie de sortie) : la pointe de flèche suit. */
+  reverseLine(id: string): boolean {
+    const el = this.plan.elements.find((e) => e.id === id);
+    if (!el?.ring || isZone(el.kind)) return false;
+    el.ring = [...el.ring].reverse();
+    [el.lat, el.lng] = el.ring[0];
+    this.touch();
+    return true;
+  }
+
   setBase(base: 'osm' | 'sat') {
     this.plan.base = base;
   }

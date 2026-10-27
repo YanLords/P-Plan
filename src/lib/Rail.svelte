@@ -240,6 +240,24 @@
     position: relative;
   }
 
+  /* petit triangle dans l'angle de l'icône : cet outil cache un sous-menu (comme Photoshop) */
+  .pub-wrap .ico {
+    position: relative;
+  }
+
+  .pub-wrap .ico::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    bottom: -2px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-bottom: 5px solid currentColor;
+    opacity: 0.65;
+    pointer-events: none;
+  }
+
   .pub-menu {
     position: fixed;
     z-index: 1000;

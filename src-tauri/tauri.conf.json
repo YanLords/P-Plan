@@ -65,7 +65,7 @@
         "exportedType": {
           "identifier": "com.artifeu.planfeu.plan",
           "conformsTo": [
-            "public.json"
+            "public.data"
           ]
         }
       }

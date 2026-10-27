@@ -27,6 +27,9 @@
   // Zone public : un appui prolongé ouvre le choix zone / icône (comme les outils cachés de Photoshop)
   const HOLD_MS = 450;
   let menuOpen = $state(false);
+  // le menu est en position fixe (le rail coupe son débordement) : on le place à la sortie du bouton
+  let menuPos = $state({ x: 0, y: 0 });
+  let wrap: HTMLElement | undefined = $state();
   let holdTimer: ReturnType<typeof setTimeout> | undefined;
   let held = false;
 
@@ -35,6 +38,8 @@
     held = false;
     holdTimer = setTimeout(() => {
       held = true;
+      const r = wrap?.getBoundingClientRect();
+      if (r) menuPos = { x: r.right + 6, y: r.top };
       menuOpen = true;
     }, HOLD_MS);
   }
@@ -98,7 +103,7 @@
 
     {#each TOOL_ORDER as k}
       {#if k === 'zone_public'}
-        <div class="pub-wrap">
+        <div class="pub-wrap" bind:this={wrap}>
           <button
             class="item"
             class:active={store.tool === k}
@@ -112,7 +117,7 @@
             <span class="lbl">{store.publicIcon ? 'Icône public' : KIND_META[k].label}</span>
           </button>
           {#if menuOpen}
-            <div class="pub-menu" role="menu">
+            <div class="pub-menu" role="menu" style="left: {menuPos.x}px; top: {menuPos.y}px">
               <button role="menuitem" class:on={!store.publicIcon} onclick={() => pickPublic(false)}>Zone public</button>
               <button role="menuitem" class:on={store.publicIcon} onclick={() => pickPublic(true)}>Icône zone public</button>
             </div>
@@ -236,15 +241,12 @@
   }
 
   .pub-menu {
-    position: absolute;
-    left: 100%;
-    top: 0;
-    z-index: 50;
+    position: fixed;
+    z-index: 1000;
     display: flex;
     flex-direction: column;
     gap: 2px;
     padding: 4px;
-    margin-left: 6px;
     background: var(--sidebar-bg);
     border: 1px solid var(--sidebar-border);
     border-radius: 10px;

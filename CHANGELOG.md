@@ -7,6 +7,10 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [0.4.0] — 2026-10-27
 
+### Modifié
+
+- La suppression d'un élément ne demande plus de confirmation (le réglage correspondant est retiré).
+
 ### Ajouté
 
 - **Raccourci** `⌘N` / `Ctrl+N` pour créer un nouveau plan.

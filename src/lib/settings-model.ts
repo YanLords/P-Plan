@@ -85,7 +85,6 @@ export interface ToolSettings {
   showRings: boolean;
   showLegend: boolean;
   showLabels: boolean;
-  confirmDelete: boolean;
   autosave: boolean;
   shortcuts: Record<ToolKey, string>;
   company: Company;
@@ -159,7 +158,6 @@ export const DEFAULT_SETTINGS: ToolSettings = {
   showRings: true,
   showLegend: true,
   showLabels: true,
-  confirmDelete: true,
   autosave: true,
   shortcuts: { ...DEFAULT_SHORTCUTS },
   company: { ...EMPTY_COMPANY },
@@ -221,7 +219,6 @@ export function sanitizeSettings(raw: unknown): ToolSettings {
     showRings: bool(src.showRings, DEFAULT_SETTINGS.showRings),
     showLegend: bool(src.showLegend, DEFAULT_SETTINGS.showLegend),
     showLabels: bool(src.showLabels, DEFAULT_SETTINGS.showLabels),
-    confirmDelete: bool(src.confirmDelete, DEFAULT_SETTINGS.confirmDelete),
     autosave: bool(src.autosave, DEFAULT_SETTINGS.autosave),
     shortcuts,
     company: sanitizeCompany(src.company),

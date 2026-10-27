@@ -56,10 +56,10 @@
 
     {#if el.kind === 'sortie'}
       <div class="field">
-        <span>Flèche</span>
+        <span>Icône</span>
         <div class="seg">
-          <button class:on={!el.hideArrow} onclick={() => store.update(el.id, { hideArrow: false })}>Affichée</button>
-          <button class:on={!!el.hideArrow} onclick={() => store.update(el.id, { hideArrow: true })}>Masquée</button>
+          <button class:on={!el.hideIcon} onclick={() => store.update(el.id, { hideIcon: false })}>Affichée</button>
+          <button class:on={!!el.hideIcon} onclick={() => store.update(el.id, { hideIcon: true })}>Masquée</button>
         </div>
       </div>
       <button onclick={() => store.reverseLine(el.id)} title="La pointe de flèche suit le nouveau sens">

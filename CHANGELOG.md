@@ -5,13 +5,26 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+## [0.4.0] — 2026-10-27
+
+### Ajouté
+
+- **Raccourci** `⌘N` / `Ctrl+N` pour créer un nouveau plan.
+- **Régie de tir** : nouvel élément (raccourci `c`) représenté par un écran d'ordinateur, fusionné en une seule ligne de légende dans le PDF.
+
+### Modifié
+
+- **Plan PDF** : la carte gagne encore 20 mm en hauteur (160 mm). Le cartouche et la légende cèdent cette place.
+- **Cartouche PDF** : l'interligne du bloc entreprise est resserré et le filet passe sous le site web (plus de chevauchement).
+- La suppression d'un élément ne demande plus de confirmation (le réglage correspondant est retiré).
+
 ## [0.3.9] — 2026-10-26
 
 ### Ajouté
 
 - Raccourci **Réglages** : `⌘,` (Mac) ou `Ctrl+,` (Windows) ouvre le panneau des réglages.
 - **Zone public en icône** : `Tab` alterne entre la zone tracée et l'icône (un clic), et un appui prolongé sur l'outil Zone public ouvre le choix des deux, comme les outils cachés de Photoshop.
-- **Voie accès secours** : la pointe de flèche peut être masquée, et le bouton « Inverser le sens » retourne le tracé (la flèche suit).
+- **Voie accès secours** : l'icône de la voie peut être masquée (la pointe de flèche reste visible), et le bouton « Inverser le sens » retourne le tracé (la flèche suit).
 - **Format de fichier `.pplan`** : les plans s'enregistrent avec l'extension `.pplan` et une icône de document dédiée (macOS). Les anciens fichiers `.json` restent ouvrables.
 - **Raccourcis** `⌘S` / `Ctrl+S` pour enregistrer et `⌘O` / `Ctrl+O` pour ouvrir un plan.
 - **Ouverture depuis le Finder / l'Explorateur** : un double-clic sur un fichier `.pplan` ouvre le plan dans l'application, qu'elle soit fermée ou déjà lancée. Si un plan contient des éléments, une confirmation demande avant de remplacer le plan courant.

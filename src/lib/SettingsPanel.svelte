@@ -152,20 +152,6 @@
         <h3>Édition</h3>
 
         <div class="row">
-          <span>Demander confirmation avant suppression</span>
-          <button
-            class="switch"
-            aria-label="Demander confirmation avant suppression"
-            role="switch"
-            aria-checked={settings.value.confirmDelete}
-            class:on={settings.value.confirmDelete}
-            onclick={() => settings.set('confirmDelete', !settings.value.confirmDelete)}
-          >
-            <span></span>
-          </button>
-        </div>
-
-        <div class="row">
           <span>Sauvegarde automatique locale</span>
           <button
             class="switch"

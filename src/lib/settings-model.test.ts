@@ -30,6 +30,7 @@ test('raccourcis par défaut : ceux de la spécification', () => {
     son: 's',
     bateau: 'f',
     surveillance: 'g',
+    regie: 'c',
     marqueur: 'm',
   });
   for (const tool of SHORTCUT_ORDER) {

@@ -140,7 +140,7 @@
   <div class="spacer"></div>
 
   <div class="actions">
-    <button class="item" onclick={onNew} title="Nouveau plan">
+    <button class="item" onclick={onNew} title="Nouveau plan (⌘N / Ctrl+N)">
       <span class="ico" style="--c:#6B6B6B">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14" /></svg>
       </span>

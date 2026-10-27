@@ -282,7 +282,6 @@ class PlanStore {
 
   remove(id: string) {
     const el = this.plan.elements.find((e) => e.id === id);
-    if (el && settings.value.confirmDelete && !confirm(`Supprimer « ${el.label} » ?`)) return;
     this.plan.elements = this.plan.elements.filter((e) => e.id !== id);
     if (this.selection === id) this.selection = null;
   }

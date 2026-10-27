@@ -154,6 +154,12 @@
       showSettings = true;
       return;
     }
+    // nouveau plan : ⌘N / Ctrl+N
+    if (mod && key === 'n') {
+      e.preventDefault();
+      onNew();
+      return;
+    }
     // enregistrer / ouvrir : ⌘S / Ctrl+S, ⌘O / Ctrl+O
     if (mod && key === 's') {
       e.preventDefault();

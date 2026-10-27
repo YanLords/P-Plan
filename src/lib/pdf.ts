@@ -9,7 +9,7 @@ import { cityOf, legendRowsFor, type LegRow } from './legend';
 
 // A4 paysage : carte pleine largeur en haut, cartouche (gauche) + légende (droite) dessous.
 const FRAME = { x: 8, y: 8, w: 281, h: 194 };
-const MAP = { x: 8, y: FRAME.y, w: 281, maxH: 145 };
+const MAP = { x: 8, y: FRAME.y, w: 281, maxH: 160 };
 const CART = { x: 8, w: 122 };
 const LEG = { x: 136, w: 153, bottom: 195 };
 const FOOT_Y = 199;

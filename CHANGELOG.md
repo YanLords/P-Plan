@@ -14,7 +14,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ### Modifié
 
-- **Plan PDF** : la carte gagne encore 5 mm en hauteur (145 mm). Le cartouche et la légende cèdent cette place.
+- **Plan PDF** : la carte gagne encore 20 mm en hauteur (160 mm). Le cartouche et la légende cèdent cette place.
 - **Cartouche PDF** : l'interligne du bloc entreprise est resserré et le filet passe sous le site web (plus de chevauchement).
 - La suppression d'un élément ne demande plus de confirmation (le réglage correspondant est retiré).
 

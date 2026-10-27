@@ -9,7 +9,7 @@
   import { store } from './lib/store.svelte';
   import { LS_KEY } from './lib/store.svelte';
   import { settings } from './lib/settings.svelte';
-  import { savePlan, openPlan, saveFile, slug } from './lib/files';
+  import { savePlan, openPlan, saveFile, slug, takePendingPlans } from './lib/files';
   import { buildPdf } from './lib/pdf';
   import { updater } from './lib/updater.svelte';
   import { onMount } from 'svelte';
@@ -78,6 +78,38 @@
       notify('Fichier de plan illisible');
     }
   }
+
+  // plan ouvert par double-clic dans le Finder / l'Explorateur (ou « Ouvrir avec »)
+  async function loadOpenedPlans() {
+    let plans;
+    try {
+      plans = await takePendingPlans();
+    } catch (e) {
+      console.error(e);
+      notify('Fichier de plan illisible');
+      return;
+    }
+    const p = plans.at(-1);
+    if (!p) return;
+    if (
+      store.plan.elements.length &&
+      !confirm('Ouvrir ce plan ? Le plan courant sera remplacé (enregistrez-le avant si besoin).')
+    )
+      return;
+    store.loadPlan(p);
+    notify('Plan ouvert');
+  }
+
+  // écoute les ouvertures pendant que l'app tourne, et lit celles reçues au démarrage
+  onMount(() => {
+    if (!('__TAURI_INTERNALS__' in window)) return;
+    let unlisten: (() => void) | undefined;
+    import('@tauri-apps/api/event').then(({ listen }) =>
+      listen('plan-opened', () => void loadOpenedPlans()).then((f) => (unlisten = f))
+    );
+    void loadOpenedPlans();
+    return () => unlisten?.();
+  });
 
   async function onPdf() {
     busy = true;

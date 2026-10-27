@@ -7,14 +7,14 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [0.4.0] — 2026-10-27
 
-### Modifié
-
-- La suppression d'un élément ne demande plus de confirmation (le réglage correspondant est retiré).
-
 ### Ajouté
 
 - **Raccourci** `⌘N` / `Ctrl+N` pour créer un nouveau plan.
 - **Régie de tir** : nouvel élément (raccourci `c`) représenté par une console de tir, fusionné en une seule ligne de légende dans le PDF.
+
+### Modifié
+
+- La suppression d'un élément ne demande plus de confirmation (le réglage correspondant est retiré).
 
 ## [0.3.9] — 2026-10-26
 

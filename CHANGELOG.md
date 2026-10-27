@@ -8,6 +8,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 ### Ajouté
 
 - **Format de fichier `.pplan`** : les plans s'enregistrent avec l'extension `.pplan` et une icône de document dédiée (macOS). Les anciens fichiers `.json` restent ouvrables.
+- **Raccourcis** `⌘S` / `Ctrl+S` pour enregistrer et `⌘O` / `Ctrl+O` pour ouvrir un plan.
 - **Ouverture depuis le Finder / l'Explorateur** : un double-clic sur un fichier `.pplan` ouvre le plan dans l'application, qu'elle soit fermée ou déjà lancée. Si un plan contient des éléments, une confirmation demande avant de remplacer le plan courant.
 
 ## [0.3.9] — 2026-10-26

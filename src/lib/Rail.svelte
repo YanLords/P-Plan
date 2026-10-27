@@ -146,13 +146,13 @@
       </span>
       <span class="lbl">Nouveau</span>
     </button>
-    <button class="item" onclick={onOpen} title="Ouvrir un plan (.pplan)">
+    <button class="item" onclick={onOpen} title="Ouvrir un plan (.pplan) — ⌘O / Ctrl+O">
       <span class="ico" style="--c:#6B6B6B">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v9a2 2 0 0 1-2 2H3z" /><path d="M3 7V6a2 2 0 0 1 2-2h4l2 3" /></svg>
       </span>
       <span class="lbl">Ouvrir</span>
     </button>
-    <button class="item" onclick={onSave} title="Enregistrer le plan (.pplan)">
+    <button class="item" onclick={onSave} title="Enregistrer le plan (.pplan) — ⌘S / Ctrl+S">
       <span class="ico" style="--c:#6B6B6B">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5z" /><path d="M8 3v6h8V3" /><path d="M8 14h8v7H8z" /></svg>
       </span>

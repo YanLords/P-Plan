@@ -154,6 +154,17 @@
       showSettings = true;
       return;
     }
+    // enregistrer / ouvrir : ⌘S / Ctrl+S, ⌘O / Ctrl+O
+    if (mod && key === 's') {
+      e.preventDefault();
+      void onSave();
+      return;
+    }
+    if (mod && key === 'o') {
+      e.preventDefault();
+      void onOpen();
+      return;
+    }
     // export PDF : ⌘E / Ctrl+E
     if (mod && key === 'e') {
       e.preventDefault();

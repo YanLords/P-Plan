@@ -31,6 +31,8 @@ export interface PElement {
   color?: string;
   /** zone affichée en simple icône : le tracé reste enregistré */
   pointMode?: boolean;
+  /** voie de sortie : pointe de flèche masquée (le tracé reste) */
+  hideArrow?: boolean;
   notes?: string;
 }
 

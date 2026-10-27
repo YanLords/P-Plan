@@ -122,6 +122,10 @@ npm run check   # svelte-check (0 erreur attendu)
 | `Suppr` | supprimer l'élément sélectionné |
 | `⌘Z` / `Ctrl+Z` | annuler la dernière modification |
 | `⇧⌘Z` / `Ctrl+Y` | rétablir |
+| `⌘,` / `Ctrl+,` | ouvrir les réglages |
+| `⌘S` / `Ctrl+S` | enregistrer le plan (`.pplan`) |
+| `⌘O` / `Ctrl+O` | ouvrir un plan |
+| `Tab` (outil Zone public) | alterne zone tracée / icône ; appui prolongé sur l'outil pour choisir |
 
 Toutes les touches d'outil sont modifiables dans **Réglages → Raccourcis clavier**
 (une touche déjà utilisée est retirée de l'outil précédent ; `Retour arrière` pour désactiver).

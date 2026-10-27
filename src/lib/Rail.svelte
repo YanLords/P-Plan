@@ -23,7 +23,52 @@
     Kind,
     string
   >;
+
+  // Zone public : un appui prolongé ouvre le choix zone / icône (comme les outils cachés de Photoshop)
+  const HOLD_MS = 450;
+  let menuOpen = $state(false);
+  // le menu est en position fixe (le rail coupe son débordement) : on le place à la sortie du bouton
+  let menuPos = $state({ x: 0, y: 0 });
+  let wrap: HTMLElement | undefined = $state();
+  let holdTimer: ReturnType<typeof setTimeout> | undefined;
+  let held = false;
+
+  function holdStart(k: Kind) {
+    if (k !== 'zone_public') return;
+    held = false;
+    holdTimer = setTimeout(() => {
+      held = true;
+      const r = wrap?.getBoundingClientRect();
+      if (r) menuPos = { x: r.right + 6, y: r.top };
+      menuOpen = true;
+    }, HOLD_MS);
+  }
+
+  function holdEnd() {
+    clearTimeout(holdTimer);
+  }
+
+  function clickTool(k: Kind) {
+    // le clic qui suit un appui prolongé ne doit pas changer d'outil
+    if (held) {
+      held = false;
+      return;
+    }
+    store.setTool(k);
+  }
+
+  function pickPublic(icon: boolean) {
+    store.setPublicIcon(icon);
+    store.setTool('zone_public');
+    menuOpen = false;
+  }
 </script>
+
+<svelte:window
+  onpointerdown={(e) => {
+    if (menuOpen && !(e.target as HTMLElement).closest('.pub-wrap')) menuOpen = false;
+  }}
+/>
 
 <aside class="rail">
   <div class="brand" title="Planete Plan">
@@ -57,15 +102,38 @@
     </button>
 
     {#each TOOL_ORDER as k}
-      <button
-        class="item"
-        class:active={store.tool === k}
-        onclick={() => store.setTool(k)}
-        title={`${KIND_META[k].label} (${settings.value.shortcuts[k] || '—'})`}
-      >
-        <span class="ico" style="--c:{KIND_META[k].color}">{@html TOOL_ICON[k]}</span>
-        <span class="lbl">{KIND_META[k].label}</span>
-      </button>
+      {#if k === 'zone_public'}
+        <div class="pub-wrap" bind:this={wrap}>
+          <button
+            class="item"
+            class:active={store.tool === k}
+            onclick={() => clickTool(k)}
+            onpointerdown={() => holdStart(k)}
+            onpointerup={holdEnd}
+            onpointerleave={holdEnd}
+            title={`${KIND_META[k].label} — Tab bascule zone / icône, appui prolongé pour choisir (${settings.value.shortcuts[k] || '—'})`}
+          >
+            <span class="ico" style="--c:{KIND_META[k].color}">{@html TOOL_ICON[k]}</span>
+            <span class="lbl">{store.publicIcon ? 'Icône public' : KIND_META[k].label}</span>
+          </button>
+          {#if menuOpen}
+            <div class="pub-menu" role="menu" style="left: {menuPos.x}px; top: {menuPos.y}px">
+              <button role="menuitem" class:on={!store.publicIcon} onclick={() => pickPublic(false)}>Zone public</button>
+              <button role="menuitem" class:on={store.publicIcon} onclick={() => pickPublic(true)}>Icône zone public</button>
+            </div>
+          {/if}
+        </div>
+      {:else}
+        <button
+          class="item"
+          class:active={store.tool === k}
+          onclick={() => clickTool(k)}
+          title={`${KIND_META[k].label} (${settings.value.shortcuts[k] || '—'})`}
+        >
+          <span class="ico" style="--c:{KIND_META[k].color}">{@html TOOL_ICON[k]}</span>
+          <span class="lbl">{KIND_META[k].label}</span>
+        </button>
+      {/if}
     {/each}
   </nav>
 
@@ -78,13 +146,13 @@
       </span>
       <span class="lbl">Nouveau</span>
     </button>
-    <button class="item" onclick={onOpen} title="Ouvrir un plan (.json)">
+    <button class="item" onclick={onOpen} title="Ouvrir un plan (.pplan) — ⌘O / Ctrl+O">
       <span class="ico" style="--c:#6B6B6B">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v9a2 2 0 0 1-2 2H3z" /><path d="M3 7V6a2 2 0 0 1 2-2h4l2 3" /></svg>
       </span>
       <span class="lbl">Ouvrir</span>
     </button>
-    <button class="item" onclick={onSave} title="Enregistrer le plan (.json)">
+    <button class="item" onclick={onSave} title="Enregistrer le plan (.pplan) — ⌘S / Ctrl+S">
       <span class="ico" style="--c:#6B6B6B">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5z" /><path d="M8 3v6h8V3" /><path d="M8 14h8v7H8z" /></svg>
       </span>
@@ -166,6 +234,62 @@
     gap: 2px;
     color: var(--text-secondary);
     transition: background 0.15s ease;
+  }
+
+  .pub-wrap {
+    position: relative;
+  }
+
+  /* petit triangle dans l'angle de l'icône : cet outil cache un sous-menu (comme Photoshop) */
+  .pub-wrap .ico {
+    position: relative;
+  }
+
+  .pub-wrap .ico::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    bottom: -2px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-bottom: 5px solid currentColor;
+    opacity: 0.65;
+    pointer-events: none;
+  }
+
+  .pub-menu {
+    position: fixed;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px;
+    background: var(--sidebar-bg);
+    border: 1px solid var(--sidebar-border);
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  }
+
+  .pub-menu button {
+    padding: 7px 12px;
+    border: none;
+    border-radius: 7px;
+    background: none;
+    font: inherit;
+    font-size: 13px;
+    white-space: nowrap;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .pub-menu button:hover {
+    background: #f0f0f0;
+  }
+
+  .pub-menu button.on {
+    background: var(--accent-light);
   }
 
   .item:hover {

@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { toPng } from 'html-to-image';
+import { toCanvas } from 'html-to-image';
 import QRCode from 'qrcode';
 import { companyIsEmpty, vcardOf, type Company } from './settings-model';
 import type { Plan, Kind } from './elements';
@@ -24,11 +24,16 @@ function hexToRgb(hex: string): [number, number, number] {
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
 
+/** Largeur de la carte dans le PDF : 2000 px pour 281 mm, soit 180 dpi à l'impression. */
+const MAP_PX = 2000;
+
 async function capture(mapEl: HTMLElement): Promise<string | null> {
   try {
-    // capture 2x puis réduction + JPEG : un PNG plein écran ferait 25 Mo de PDF
-    const raw = await toPng(mapEl, { pixelRatio: 2, cacheBust: true, backgroundColor: '#ffffff' });
-    return await downscale(raw, 2000);
+    // capture directement à la résolution de sortie : pas de PNG intermédiaire,
+    // et jamais plus de pixels que nécessaire (un PNG plein écran ferait 25 Mo de PDF)
+    const ratio = Math.min(2, Math.max(1, MAP_PX / (mapEl.clientWidth || MAP_PX)));
+    const canvas = await toCanvas(mapEl, { pixelRatio: ratio, cacheBust: true, backgroundColor: '#ffffff' });
+    return toJpeg(canvas, MAP_PX);
   } catch (err) {
     // ponytail: tuiles distantes non capturables (CORS/réseau) -> plan sans fond de carte
     console.warn('[pdf] capture de la carte impossible', err);
@@ -39,32 +44,16 @@ async function capture(mapEl: HTMLElement): Promise<string | null> {
 /** Élargit la carte au format du plan avant la capture ; renvoie sa largeur en px CSS. */
 export type PdfFit = (aspect: number, on: boolean) => Promise<number | void>;
 
-/** Réduit l'image et la recadre au centre au format demandé (largeur/hauteur). */
-async function downscale(dataUrl: string, maxWidth: number, aspect?: number): Promise<string> {
-  const img = new Image();
-  img.src = dataUrl;
-  await img.decode();
-
-  let sx = 0;
-  let sy = 0;
-  let sw = img.width;
-  let sh = img.height;
-  const srcAspect = sw / sh;
-  if (aspect && srcAspect > aspect) {
-    sw = Math.round(sh * aspect);
-    sx = Math.round((img.width - sw) / 2);
-  } else if (aspect && srcAspect < aspect) {
-    sh = Math.round(sw / aspect);
-    sy = Math.round((img.height - sh) / 2);
-  }
-
-  const scale = Math.min(1, maxWidth / sw);
+/** JPEG du canvas, réduit à `maxWidth` seulement s'il est plus large. */
+function toJpeg(src: HTMLCanvasElement, maxWidth: number): string {
+  const scale = Math.min(1, maxWidth / src.width);
+  if (scale === 1) return src.toDataURL('image/jpeg', 0.86);
   const canvas = document.createElement('canvas');
-  canvas.width = Math.round(sw * scale);
-  canvas.height = Math.round(sh * scale);
+  canvas.width = Math.round(src.width * scale);
+  canvas.height = Math.round(src.height * scale);
   const ctx = canvas.getContext('2d');
-  if (!ctx) return dataUrl;
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+  if (!ctx) return src.toDataURL('image/jpeg', 0.86);
+  ctx.drawImage(src, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL('image/jpeg', 0.86);
 }
 

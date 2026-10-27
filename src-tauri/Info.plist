@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Type de fichier « plan » (.pplan) : icône du document et ouverture par double-clic dans le Finder -->
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key>
+      <string>Plan Planete Plan</string>
+      <key>CFBundleTypeRole</key>
+      <string>Editor</string>
+      <key>LSHandlerRank</key>
+      <string>Owner</string>
+      <key>CFBundleTypeIconFile</key>
+      <string>pplan.icns</string>
+      <key>LSItemContentTypes</key>
+      <array>
+        <string>com.artifeu.planfeu.plan</string>
+      </array>
+    </dict>
+  </array>
+  <key>UTExportedTypeDeclarations</key>
+  <array>
+    <dict>
+      <key>UTTypeIdentifier</key>
+      <string>com.artifeu.planfeu.plan</string>
+      <key>UTTypeDescription</key>
+      <string>Plan Planete Plan</string>
+      <key>UTTypeConformsTo</key>
+      <array>
+        <string>public.data</string>
+      </array>
+      <key>UTTypeIconFile</key>
+      <string>pplan.icns</string>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key>
+        <array>
+          <string>pplan</string>
+        </array>
+        <key>public.mime-type</key>
+        <array>
+          <string>application/x-planete-plan</string>
+        </array>
+      </dict>
+    </dict>
+  </array>
+</dict>
+</plist>

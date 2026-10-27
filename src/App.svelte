@@ -9,7 +9,7 @@
   import { store } from './lib/store.svelte';
   import { LS_KEY } from './lib/store.svelte';
   import { settings } from './lib/settings.svelte';
-  import { savePlan, openPlan, saveFile, slug } from './lib/files';
+  import { savePlan, openPlan, saveFile, slug, takePendingPlans } from './lib/files';
   import { buildPdf } from './lib/pdf';
   import { updater } from './lib/updater.svelte';
   import { onMount } from 'svelte';
@@ -79,6 +79,38 @@
     }
   }
 
+  // plan ouvert par double-clic dans le Finder / l'Explorateur (ou « Ouvrir avec »)
+  async function loadOpenedPlans() {
+    let plans;
+    try {
+      plans = await takePendingPlans();
+    } catch (e) {
+      console.error(e);
+      notify('Fichier de plan illisible');
+      return;
+    }
+    const p = plans.at(-1);
+    if (!p) return;
+    if (
+      store.plan.elements.length &&
+      !confirm('Ouvrir ce plan ? Le plan courant sera remplacé (enregistrez-le avant si besoin).')
+    )
+      return;
+    store.loadPlan(p);
+    notify('Plan ouvert');
+  }
+
+  // écoute les ouvertures pendant que l'app tourne, et lit celles reçues au démarrage
+  onMount(() => {
+    if (!('__TAURI_INTERNALS__' in window)) return;
+    let unlisten: (() => void) | undefined;
+    import('@tauri-apps/api/event').then(({ listen }) =>
+      listen('plan-opened', () => void loadOpenedPlans()).then((f) => (unlisten = f))
+    );
+    void loadOpenedPlans();
+    return () => unlisten?.();
+  });
+
   async function onPdf() {
     busy = true;
     try {
@@ -116,6 +148,23 @@
 
     const mod = e.metaKey || e.ctrlKey;
     const key = e.key.toLowerCase();
+    // réglages : ⌘, / Ctrl+,
+    if (mod && key === ',') {
+      e.preventDefault();
+      showSettings = true;
+      return;
+    }
+    // enregistrer / ouvrir : ⌘S / Ctrl+S, ⌘O / Ctrl+O
+    if (mod && key === 's') {
+      e.preventDefault();
+      void onSave();
+      return;
+    }
+    if (mod && key === 'o') {
+      e.preventDefault();
+      void onOpen();
+      return;
+    }
     // export PDF : ⌘E / Ctrl+E
     if (mod && key === 'e') {
       e.preventDefault();
@@ -125,6 +174,14 @@
     const target = e.target as HTMLElement | null;
     const typing = !!target && /^(input|textarea|select)$/i.test(target.tagName);
     if (typing) return;
+
+    // zone public : Tab alterne zone tracée / icône (un clic)
+    if (e.key === 'Tab' && store.tool === 'zone_public') {
+      e.preventDefault();
+      store.setPublicIcon(!store.publicIcon);
+      notify(store.publicIcon ? 'Zone public : icône' : 'Zone public : zone');
+      return;
+    }
 
     // copier / coller / dupliquer : ⌘C, ⌘V, ⌘D (Ctrl sur Windows)
     if (mod && (key === 'c' || key === 'v' || key === 'd')) {

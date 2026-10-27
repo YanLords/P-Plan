@@ -93,6 +93,15 @@ export function legendRowsFor(plan: Plan): LegRow[] {
       continue;
     }
 
+    // zone public en icône : pas de surface à lister, une seule ligne pour toutes
+    if (e.kind === 'zone_public' && e.pointMode) {
+      if (seen.has('zone_public|icon')) continue;
+      seen.add('zone_public|icon');
+      const same = plan.elements.filter((o) => o.kind === 'zone_public' && o.pointMode);
+      rows.push({ kind: e.kind, color, label: meta.label, details: '', note: notesOf(same) });
+      continue;
+    }
+
     if (MERGED.includes(e.kind)) {
       if (seen.has(e.kind)) continue;
       seen.add(e.kind);

@@ -5,24 +5,18 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
-### Ajouté
-
-- **Zone public en icône** : `Tab` alterne entre la zone tracée et l'icône (un clic), et un appui prolongé sur l'outil Zone public ouvre le choix des deux, comme les outils cachés de Photoshop.
-- **Voie accès secours** : la pointe de flèche peut être masquée, et le bouton « Inverser le sens » retourne le tracé (la flèche suit).
-
-### Modifié
-
-- **Légende PDF** : les zones public en icône ne sont plus dupliquées ; une seule ligne les représente, sans surface.
-
 ## [0.3.9] — 2026-10-26
 
 ### Ajouté
 
 - Raccourci **Réglages** : `⌘,` (Mac) ou `Ctrl+,` (Windows) ouvre le panneau des réglages.
+- **Zone public en icône** : `Tab` alterne entre la zone tracée et l'icône (un clic), et un appui prolongé sur l'outil Zone public ouvre le choix des deux, comme les outils cachés de Photoshop.
+- **Voie accès secours** : la pointe de flèche peut être masquée, et le bouton « Inverser le sens » retourne le tracé (la flèche suit).
 
 ### Modifié
 
 - **Export PDF plus rapide** : la carte est capturée directement à la résolution imprimée (2000 px) en canvas, sans passer par un PNG intermédiaire. Le fichier produit est inchangé.
+- **Légende PDF** : les zones public en icône ne sont plus dupliquées ; une seule ligne les représente, sans surface.
 
 ## [0.3.8] — 2026-10-26
 

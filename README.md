@@ -117,6 +117,7 @@ npm run check   # svelte-check (0 erreur attendu)
 | `W` | Extincteur |
 | `X` | Échelle |
 | `M` | Marqueur |
+| `C` | Régie de tir |
 | `Entrée` | terminer le tracé (barriérage / zone) |
 | `Échap` | annuler le tracé en cours, sinon désélectionner |
 | `Suppr` | supprimer l'élément sélectionné |

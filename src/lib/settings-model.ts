@@ -109,6 +109,7 @@ export const SHORTCUT_ORDER: ToolKey[] = [
   'extincteur',
   'son',
   'surveillance',
+  'regie',
   'bateau',
   'marqueur',
 ];
@@ -127,6 +128,7 @@ export const SHORTCUT_LABELS: Record<ToolKey, string> = {
   extincteur: 'Extincteur',
   son: 'Son',
   surveillance: 'Surveillance',
+  regie: 'Régie de tir',
   bateau: 'Bateau',
   marqueur: 'Marqueur',
 };
@@ -145,6 +147,7 @@ export const DEFAULT_SHORTCUTS: Record<ToolKey, string> = {
   extincteur: 'w',
   son: 's',
   surveillance: 'g',
+  regie: 'c',
   bateau: 'f',
   marqueur: 'm',
 };

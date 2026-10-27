@@ -20,6 +20,7 @@ export const MERGED: Kind[] = [
   'son',
   'accueil_secours',
   'surveillance',
+  'regie',
 ];
 
 export interface LegRow {

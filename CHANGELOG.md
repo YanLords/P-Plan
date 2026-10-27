@@ -5,6 +5,10 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+### Ajouté
+
+- **Régie de tir** : nouvel élément (raccourci `c`) représenté par une console de tir, fusionné en une seule ligne de légende dans le PDF.
+
 ## [0.3.9] — 2026-10-26
 
 ### Ajouté

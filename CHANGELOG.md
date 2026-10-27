@@ -10,7 +10,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 ### Ajouté
 
 - **Raccourci** `⌘N` / `Ctrl+N` pour créer un nouveau plan.
-- **Régie de tir** : nouvel élément (raccourci `c`) représenté par une console de tir, fusionné en une seule ligne de légende dans le PDF.
+- **Régie de tir** : nouvel élément (raccourci `c`) représenté par un écran d'ordinateur, fusionné en une seule ligne de légende dans le PDF.
 
 ### Modifié
 

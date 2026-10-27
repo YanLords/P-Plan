@@ -108,9 +108,9 @@ const PATHS: Record<Kind, string> = {
     '<path d="M3.4 14.2h17.2l-2.1 4.1a1.7 1.7 0 0 1-1.5.9H7a1.7 1.7 0 0 1-1.5-.9z"/><path d="M12 14.2V4.6"/><path d="m12 5.6 4.6 2.9H12z"/><path d="M12 8.5H7.8L12 5.9z"/>',
   surveillance:
     '<path d="M2.2 12s3.7-7 9.8-7 9.8 7 9.8 7-3.7 7-9.8 7-9.8-7-9.8-7z"/><circle cx="12" cy="12" r="2.9"/>',
-  // régie de tir : écran au-dessus d'un pupitre à touches et sélecteur
+  // régie de tir : écran d'ordinateur sur son pied
   regie:
-    '<rect x="4" y="2.5" width="16" height="8" rx="1.2"/><path d="M2.5 14.5h19l-1.5 6H4z"/><circle cx="7.5" cy="17.5" r="0.9"/><circle cx="11" cy="17.5" r="0.9"/><circle cx="14.5" cy="17.5" r="0.9"/><path d="M17.2 16.8v1.4"/>',
+    '<rect x="2.5" y="3.5" width="19" height="13" rx="2"/><path d="M8.5 21h7M12 16.5V21"/>',
   marqueur:
     '<path d="M20 10.2c0 6-8 11.8-8 11.8S4 16.2 4 10.2a8 8 0 0 1 16 0z"/><circle cx="12" cy="10.2" r="2.6"/>',
 };

@@ -126,6 +126,7 @@ npm run check   # svelte-check (0 erreur attendu)
 | `⌘,` / `Ctrl+,` | ouvrir les réglages |
 | `⌘S` / `Ctrl+S` | enregistrer le plan (`.pplan`) |
 | `⌘O` / `Ctrl+O` | ouvrir un plan |
+| `⌘N` / `Ctrl+N` | nouveau plan |
 | `Tab` (outil Zone public) | alterne zone tracée / icône ; appui prolongé sur l'outil pour choisir |
 
 Toutes les touches d'outil sont modifiables dans **Réglages → Raccourcis clavier**

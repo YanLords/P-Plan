@@ -17,7 +17,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 - Raccourci **Réglages** : `⌘,` (Mac) ou `Ctrl+,` (Windows) ouvre le panneau des réglages.
 - **Zone public en icône** : `Tab` alterne entre la zone tracée et l'icône (un clic), et un appui prolongé sur l'outil Zone public ouvre le choix des deux, comme les outils cachés de Photoshop.
-- **Voie accès secours** : la pointe de flèche peut être masquée, et le bouton « Inverser le sens » retourne le tracé (la flèche suit).
+- **Voie accès secours** : l'icône de la voie peut être masquée (la pointe de flèche reste visible), et le bouton « Inverser le sens » retourne le tracé (la flèche suit).
 - **Format de fichier `.pplan`** : les plans s'enregistrent avec l'extension `.pplan` et une icône de document dédiée (macOS). Les anciens fichiers `.json` restent ouvrables.
 - **Raccourcis** `⌘S` / `Ctrl+S` pour enregistrer et `⌘O` / `Ctrl+O` pour ouvrir un plan.
 - **Ouverture depuis le Finder / l'Explorateur** : un double-clic sur un fichier `.pplan` ouvre le plan dans l'application, qu'elle soit fermée ou déjà lancée. Si un plan contient des éléments, une confirmation demande avant de remplacer le plan courant.

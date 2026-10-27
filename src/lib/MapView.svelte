@@ -189,7 +189,7 @@
           .on('contextmenu', (ev) => openMenu(ev as L.LeafletMouseEvent, e.id));
         strokes.push({ layer: shape, base: baseW });
 
-        if (isSortie && e.ring.length > 1 && !e.hideArrow) {
+        if (isSortie && e.ring.length > 1) {
           const last = e.ring[e.ring.length - 1];
           const prev = e.ring[e.ring.length - 2];
           L.marker(last, {
@@ -299,9 +299,12 @@
       // un point se déplace à l'icône ; une zone aussi (tout le contour suit),
       // un tracé se déplace par ses sommets
       const movable = !e.ring || isZone(e.kind) || !!e.pointMode;
+      // voie de sortie : l'icône peut être masquée (la pointe de flèche reste sur le tracé)
+      const hidden = e.kind === 'sortie' && !!e.hideIcon;
       const m = L.marker([e.lat, e.lng], {
-        icon: pin(e, sel),
+        icon: hidden ? L.divIcon({ className: 'pf-pin-wrap', html: '', iconSize: [0, 0] }) : pin(e, sel),
         draggable: movable,
+        interactive: !hidden,
         zIndexOffset: 300,
       }).addTo(overlay!);
       m.bindTooltip(`${i + 1}. ${e.label}`, { direction: 'top', offset: [0, -14], opacity: 0.95 });

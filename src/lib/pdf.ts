@@ -472,7 +472,7 @@ export async function buildPdf(
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(...INK);
-    doc.text('Légende', LEG.x, bandY + 5.4);
+    doc.text('Légende', LEG.x, bandY + 3.6);
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(5.6);
     doc.setTextColor(...MUTED);
@@ -483,15 +483,15 @@ export async function buildPdf(
         LEG.w - 20
       ),
       LEG.x + 21,
-      bandY + 5.4
+      bandY + 3.6
     );
     doc.setDrawColor(...RULE);
     doc.setLineWidth(0.12);
-    doc.line(LEG.x, bandY + 8, LEG.x + LEG.w, bandY + 8);
+    doc.line(LEG.x, bandY + 5.6, LEG.x + LEG.w, bandY + 5.6);
 
     const noteStep = 2.4; // interligne de la note sous sa ligne
     // police de +1 pt au minimum, +2 pt si la légende tient en 2 à 4 colonnes
-    const top = bandY + 12.4;
+    const top = bandY + 10;
     const inner = LEG.w - 4;
     const gap = 4;
     const avail = LEG.bottom - top;

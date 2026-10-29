@@ -68,7 +68,7 @@
       </button>
     {/if}
 
-    {#if el.kind === 'artifice' || isZone(el.kind) || el.kind === 'marqueur' || isTintable(el.kind)}
+    {#if el.kind === 'artifice' || isZone(el.kind) || el.kind === 'marqueur' || el.kind === 'regie' || isTintable(el.kind)}
       <label>
         <span>Couleur</span>
         <input

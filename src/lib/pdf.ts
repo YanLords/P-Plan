@@ -476,60 +476,67 @@ export async function buildPdf(
     const gap = 4;
     const avail = LEG.bottom - top;
 
-    // réparti en `cols` colonnes de hauteur équilibrée (une note ajoute une ligne)
-    const layout = (step: number, cols: number) => {
-      const heights = rows.map((r) => step + (r.note ? noteStep : 0));
-      const perCol = heights.reduce((sum, v) => sum + v, 0) / cols;
+    // rangées placées colonne par colonne, de haut en bas ; une page pleine passe à la suivante
+    const LEG_TOP_NEXT = 24; // haut de la légende sur les pages suivantes
+    const paginate = (step: number, cols: number) => {
+      const pages: { row: LegRow; col: number; y: number }[][] = [[]];
       let col = 0;
       let y = 0;
-      const placed: { row: LegRow; col: number; y: number }[] = [];
-      const maxY = new Array<number>(cols).fill(0);
-      heights.forEach((h, i) => {
-        if (col < cols - 1 && i > 0 && y > 0 && y + h > perCol) {
+      rows.forEach((row) => {
+        const h = step + (row.note ? noteStep : 0);
+        const limit = pages.length === 1 ? avail : LEG.bottom - LEG_TOP_NEXT;
+        if (y > 0 && y + h > limit) {
           col++;
           y = 0;
+          if (col >= cols) {
+            pages.push([]);
+            col = 0;
+          }
         }
-        placed.push({ row: rows[i], col, y });
+        pages[pages.length - 1].push({ row, col, y });
         y += h;
-        maxY[col] = Math.max(maxY[col], y);
       });
-      return { placed, maxH: Math.max(...maxY) };
+      return pages;
     };
 
-    // la plus grande police qui tient, avec le moins de colonnes possible
-    let chosen = { fontPt: 7.2, cols: 4, plan: layout(7.2 * 0.72, 4) };
+    // la plus grande police qui tient sur une page, avec le moins de colonnes possible ;
+    // sinon 7,2 pt sur 4 colonnes, et le reste sur les pages suivantes
+    let chosen = { fontPt: 7.2, cols: 4, pages: paginate(7.2 * 0.72, 4) };
     search: for (const f of [8.2, 8.0, 7.8, 7.6, 7.4, 7.2]) {
       for (const cols of [2, 3, 4]) {
-        const plan = layout(f * 0.72, cols);
-        if (plan.maxH <= avail) {
-          chosen = { fontPt: f, cols, plan };
+        const pages = paginate(f * 0.72, cols);
+        if (pages.length === 1) {
+          chosen = { fontPt: f, cols, pages };
           break search;
         }
       }
     }
-    const { fontPt, cols, plan: plan2 } = chosen;
+    const { fontPt, cols, pages: legendPages } = chosen;
     const colW = (inner - gap * (cols - 1)) / cols;
     const colX = Array.from({ length: cols }, (_, i) => LEG.x + i * (colW + gap));
 
-    for (const { row, col, y } of plan2.placed) {
-      if (col >= cols) {
-        // ponytail: au-delà du nombre de colonnes on déborde sur une 2e page
+    for (const [p, pagePlaced] of legendPages.entries()) {
+      if (p > 0) {
         doc.addPage('a4', 'landscape');
         drawFrame(doc);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(7);
         doc.setTextColor(...INK);
-        doc.text(`LÉGENDE (suite) — ${plan.titre}`, LEG.x, 20);
-        break;
+        doc.text(`LÉGENDE (suite) — ${plan.titre}`, FRAME.x + 6, 20);
       }
-      const lineY = top + y + 2;
-      legendRow(doc, row, colX[col], lineY, colW, icons.get(`${row.kind}|${row.color}`) ?? null, fontPt);
-      if (row.note) {
-        // la note de l'élément, juste sous sa ligne
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(Math.max(4.4, fontPt - 0.8));
-        doc.setTextColor(60, 60, 60);
-        doc.text(fitText(doc, row.note, colW - 5), colX[col] + 4.6, lineY + noteStep);
+      // sur les pages suivantes, la légende part du bord gauche du cadre
+      const pageTop = p === 0 ? top : LEG_TOP_NEXT;
+      const pageX = (col: number) => (p === 0 ? colX[col] : FRAME.x + 6 + col * (colW + gap));
+      for (const { row, col, y } of pagePlaced) {
+        const lineY = pageTop + y + 2;
+        legendRow(doc, row, pageX(col), lineY, colW, icons.get(`${row.kind}|${row.color}`) ?? null, fontPt);
+        if (row.note) {
+          // la note de l'élément, juste sous sa ligne
+          doc.setFont('helvetica', 'italic');
+          doc.setFontSize(Math.max(4.4, fontPt - 0.8));
+          doc.setTextColor(60, 60, 60);
+          doc.text(fitText(doc, row.note, colW - 5), pageX(col) + 4.6, lineY + noteStep);
+        }
       }
     }
 

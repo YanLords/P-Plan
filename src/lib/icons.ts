@@ -14,7 +14,7 @@ import electriciteUrl from './icons/electricite.svg?url';
 /** Tracés seuls (sans `<svg>`), réutilisables dans une autre composition SVG. */
 export function kindGlyph(kind: Kind, color = 'currentColor', strokeWidth = 1.7): string {
   return (
-    `<g fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">` +
+    `<g fill="none" color="${color}" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">` +
     `${PATHS[kind] ?? ''}</g>`
   );
 }

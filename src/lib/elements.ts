@@ -119,24 +119,24 @@ export const groupOf = (kind: Kind): ToolGroup | undefined => TOOL_GROUPS.find((
 
 export const PATHS: Partial<Record<Kind, string>> = {
   artifice:
-    '<path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.2 5.2l2.1 2.1M16.7 16.7l2.1 2.1M18.8 5.2l-2.1 2.1M7.3 16.7l-2.1 2.1"/><circle cx="12" cy="12" r="3.1"/>',
+    '<path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.2 5.2l2.1 2.1M16.7 16.7l2.1 2.1M18.8 5.2l-2.1 2.1M7.3 16.7l-2.1 2.1"/><circle cx="12" cy="12" r="3.1" fill="currentColor"/>',
   barrierage: '<path d="M3 8h18M3 16h18M7 8v8M12 8v8M17 8v8"/>',
   sortie: '<path d="M3 12h13"/><path d="m12 6 6 6-6 6"/>',
   zone_public:
-    '<circle cx="9" cy="8" r="2.6"/><path d="M3.6 19.5a5.4 5.4 0 0 1 10.8 0"/><circle cx="17" cy="9.2" r="2"/><path d="M16.2 19.5a4.6 4.6 0 0 1 4.4-4.4"/>',
+    '<circle cx="9" cy="8" r="2.6" fill="currentColor"/><path d="M3.6 19.5a5.4 5.4 0 0 1 10.8 0z" fill="currentColor"/><circle cx="17" cy="9.2" r="2" fill="currentColor"/><path d="M16.2 19.5a4.6 4.6 0 0 1 4.4-4.4z" fill="currentColor"/>',
   zone_perso:
-    '<path d="M12 3.2 19.6 7.6v8.8L12 20.8 4.4 16.4V7.6z"/><path d="M12 9.2v5.6" stroke-dasharray="2 2"/>',
-  point_eau: '<path d="M12 2.8 6.4 8.4a8 8 0 1 0 11.2 0z"/>',
-  // bouée de sauvetage (life-buoy, Feather)
+    '<path d="M12 3.2 19.6 7.6v8.8L12 20.8 4.4 16.4V7.6z" fill="currentColor"/><path d="M12 9.2v5.6" stroke="#fff" stroke-dasharray="2 2"/>',
+  point_eau: '<path d="M12 2.8 6.4 8.4a8 8 0 1 0 11.2 0z" fill="currentColor"/>',
+  // bouée de sauvetage (life-buoy, Feather) : disque plein, anneau et rayons en blanc
   bouee:
-    '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.6"/><path d="m5.6 5.6 3.8 3.8M14.6 9.4l3.8-3.8M14.6 14.6l3.8 3.8M9.4 14.6l-3.8 3.8"/>',
+    '<circle cx="12" cy="12" r="9" fill="currentColor"/><circle cx="12" cy="12" r="3.6" fill="#fff" stroke="#fff"/><path d="m5.6 5.6 3.8 3.8M14.6 9.4l3.8-3.8M14.6 14.6l3.8 3.8M9.4 14.6l-3.8 3.8" stroke="#fff" stroke-width="2.4"/>',
   bateau:
-    '<path d="M3.4 14.2h17.2l-2.1 4.1a1.7 1.7 0 0 1-1.5.9H7a1.7 1.7 0 0 1-1.5-.9z"/><path d="M12 14.2V4.6"/><path d="m12 5.6 4.6 2.9H12z"/><path d="M12 8.5H7.8L12 5.9z"/>',
-  // régie de tir : écran d'ordinateur sur son pied
+    '<path d="M3.4 14.2h17.2l-2.1 4.1a1.7 1.7 0 0 1-1.5.9H7a1.7 1.7 0 0 1-1.5-.9z" fill="currentColor"/><path d="M12 14.2V4.6"/><path d="m12 5.6 4.6 2.9H12z" fill="currentColor"/><path d="M12 8.5H7.8L12 5.9z" fill="currentColor"/>',
+  // régie de tir : écran d'ordinateur plein sur son pied
   regie:
-    '<rect x="2.5" y="3.5" width="19" height="13" rx="2"/><path d="M8.5 21h7M12 16.5V21"/>',
+    '<rect x="2.5" y="3.5" width="19" height="13" rx="2" fill="currentColor"/><path d="M8.5 21h7M12 16.5V21"/>',
   marqueur:
-    '<path d="M20 10.2c0 6-8 11.8-8 11.8S4 16.2 4 10.2a8 8 0 0 1 16 0z"/><circle cx="12" cy="10.2" r="2.6"/>',
+    '<path d="M20 10.2c0 6-8 11.8-8 11.8S4 16.2 4 10.2a8 8 0 0 1 16 0z" fill="currentColor"/><circle cx="12" cy="10.2" r="2.6" fill="#fff" stroke="#fff"/>',
 };
 
 export const isZone = (kind: Kind) => KIND_META[kind].shape === 'zone';

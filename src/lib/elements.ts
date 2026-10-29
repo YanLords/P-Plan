@@ -70,7 +70,7 @@ export const KIND_META: Record<
   bouee: { label: 'Bouée', color: '#F76707', shape: 'point' },
   extincteur: { label: 'Extincteur', color: '#FF3B30', shape: 'point' },
   son: { label: 'Son', color: '#000000', shape: 'point' },
-  bateau: { label: 'Fond de bateau', color: '#4A6C8C', shape: 'zone' },
+  bateau: { label: 'Barge', color: '#4A6C8C', shape: 'zone' },
   surveillance: { label: 'Agent de surveillance', color: '#4eac4c', shape: 'point' },
   personnel_jco: { label: 'Personnel JCO', color: '#ea1f4c', shape: 'point' },
   camion_pompier: { label: 'Camion pompier', color: '#D9480F', shape: 'point' },

@@ -11,8 +11,8 @@ import { cityOf, legendRowsFor, type LegRow } from './legend';
 // A4 paysage : carte pleine largeur en haut, cartouche (gauche) + légende (droite) dessous.
 const FRAME = { x: 8, y: 8, w: 281, h: 194 };
 const MAP = { x: 8, y: FRAME.y, w: 281, maxH: 160 };
-const CART = { x: 8, w: 122 };
-const LEG = { x: 136, w: 153, bottom: 195 };
+const CART = { x: 8, w: 100 };
+const LEG = { x: 114, w: 175, bottom: 195 };
 const FOOT_Y = 199;
 /** Types regroupés en une seule ligne de légende (un seul point d'eau, un seul extincteur…). */
 

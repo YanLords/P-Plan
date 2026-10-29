@@ -50,7 +50,7 @@
   function pin(e: PElement, selected: boolean) {
     return L.divIcon({
       className: 'pf-pin-wrap',
-      html: `<div class="pf-pin${selected ? ' sel' : ''}" style="--c:${colorOf(e)}">${kindIcon(e.kind, colorOf(e))}</div>`,
+      html: `<div class="pf-pin${selected ? ' sel' : ''}" data-kind="${e.kind}" style="--c:${colorOf(e)}">${kindIcon(e.kind, colorOf(e))}</div>`,
       iconSize: [26, 26],
       iconAnchor: [13, 13],
     });
@@ -157,6 +157,10 @@
     // les contrôles Leaflet ne font pas partie du plan
     for (const ctrl of el?.querySelectorAll<HTMLElement>('.leaflet-control-zoom') ?? []) {
       ctrl.style.display = on ? 'none' : '';
+    }
+    // le picto d'une barrière reste à l'écran ; sur le PDF, seul son tracé est imprimé
+    for (const pin of el?.querySelectorAll<HTMLElement>('.pf-pin[data-kind="barrierage"]') ?? []) {
+      pin.style.visibility = on ? 'hidden' : '';
     }
   }
 

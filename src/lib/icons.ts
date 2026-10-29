@@ -31,7 +31,7 @@ export function kindIconSvg(kind: Kind, size = 20, color = 'currentColor'): stri
 
 /** Pictogrammes fournis en fichiers, aux couleurs d'origine (non personnalisables). */
 const FILE_ICON: Partial<Record<Kind, string>> = {
-  point_eau: borneIncendieUrl,
+  bouche_incendie: borneIncendieUrl,
   extincteur: extincteurUrl,
   accueil_secours: accueilSecoursUrl,
   camion_pompier: camionPompierUrl,

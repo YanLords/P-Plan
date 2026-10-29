@@ -15,6 +15,7 @@ import { formatMeters, ringArea, ringLength } from './geo.ts';
 export const MERGED: Kind[] = [
   'barrierage',
   'point_eau',
+  'bouche_incendie',
   'bouee',
   'extincteur',
   'son',

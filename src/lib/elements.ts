@@ -8,6 +8,8 @@ export type Kind =
   | 'zone_perso'
   | 'accueil_secours'
   | 'point_eau'
+  | 'bouche_incendie'
+  | 'bouche_incendie'
   | 'bouee'
   | 'extincteur'
   | 'son'
@@ -64,6 +66,7 @@ export const KIND_META: Record<
   zone_perso: { label: 'Zone perso', color: '#8E5CF7', shape: 'zone' },
   accueil_secours: { label: 'Accueil secours', color: '#34C759', shape: 'point' },
   point_eau: { label: "Point d'eau", color: '#0A84FF', shape: 'point' },
+  bouche_incendie: { label: 'Bouche incendie', color: '#E53013', shape: 'point' },
   bouee: { label: 'Bouée', color: '#F76707', shape: 'point' },
   extincteur: { label: 'Extincteur', color: '#FF3B30', shape: 'point' },
   son: { label: 'Son', color: '#000000', shape: 'point' },
@@ -86,6 +89,7 @@ export const TOOL_ORDER: Kind[] = [
   'sortie',
   'accueil_secours',
   'point_eau',
+  'bouche_incendie',
   'bouee',
   'extincteur',
   'son',
@@ -122,6 +126,7 @@ export const PATHS: Partial<Record<Kind, string>> = {
     '<circle cx="9" cy="8" r="2.6"/><path d="M3.6 19.5a5.4 5.4 0 0 1 10.8 0"/><circle cx="17" cy="9.2" r="2"/><path d="M16.2 19.5a4.6 4.6 0 0 1 4.4-4.4"/>',
   zone_perso:
     '<path d="M12 3.2 19.6 7.6v8.8L12 20.8 4.4 16.4V7.6z"/><path d="M12 9.2v5.6" stroke-dasharray="2 2"/>',
+  point_eau: '<path d="M12 2.8 6.4 8.4a8 8 0 1 0 11.2 0z"/>',
   // bouée de sauvetage (life-buoy, Feather)
   bouee:
     '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.6"/><path d="m5.6 5.6 3.8 3.8M14.6 9.4l3.8-3.8M14.6 14.6l3.8 3.8M9.4 14.6l-3.8 3.8"/>',

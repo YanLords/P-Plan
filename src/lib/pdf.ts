@@ -470,45 +470,50 @@ export async function buildPdf(
     doc.line(LEG.x, bandY + 8, LEG.x + LEG.w, bandY + 8);
 
     const noteStep = 2.4; // interligne de la note sous sa ligne
-    // 2 colonnes, police réduite tant que ça tient
+    // police de +1 pt au minimum, +2 pt si la légende tient en 2 à 4 colonnes
     const top = bandY + 12.4;
     const inner = LEG.w - 4;
-    const colW = inner / 2;
-    const colX = [LEG.x, LEG.x + colW + 4];
+    const gap = 4;
     const avail = LEG.bottom - top;
 
-    // réparti en 2 colonnes de hauteur équilibrée (une note ajoute une ligne)
-    const layout = (step: number) => {
+    // réparti en `cols` colonnes de hauteur équilibrée (une note ajoute une ligne)
+    const layout = (step: number, cols: number) => {
       const heights = rows.map((r) => step + (r.note ? noteStep : 0));
-      const total = heights.reduce((sum, v) => sum + v, 0);
+      const perCol = heights.reduce((sum, v) => sum + v, 0) / cols;
       let col = 0;
       let y = 0;
       const placed: { row: LegRow; col: number; y: number }[] = [];
-      const maxY = [0, 0];
+      const maxY = new Array<number>(cols).fill(0);
       heights.forEach((h, i) => {
-        if (col === 0 && y + h > total / 2 && i > 0) {
-          col = 1;
+        if (col < cols - 1 && i > 0 && y > 0 && y + h > perCol) {
+          col++;
           y = 0;
         }
         placed.push({ row: rows[i], col, y });
         y += h;
         maxY[col] = Math.max(maxY[col], y);
       });
-      return { placed, maxH: Math.max(maxY[0], maxY[1]) };
+      return { placed, maxH: Math.max(...maxY) };
     };
 
-    let fontPt = 6.2;
-    let plan2 = layout(fontPt * 0.72);
-    for (const f of [5.8, 5.4, 5.0, 4.6]) {
-      if (plan2.maxH <= avail) break;
-      fontPt = f;
-      plan2 = layout(fontPt * 0.72);
+    // la plus grande police qui tient, avec le moins de colonnes possible
+    let chosen = { fontPt: 7.2, cols: 4, plan: layout(7.2 * 0.72, 4) };
+    search: for (const f of [8.2, 8.0, 7.8, 7.6, 7.4, 7.2]) {
+      for (const cols of [2, 3, 4]) {
+        const plan = layout(f * 0.72, cols);
+        if (plan.maxH <= avail) {
+          chosen = { fontPt: f, cols, plan };
+          break search;
+        }
+      }
     }
-    const rowStep = fontPt * 0.72;
+    const { fontPt, cols, plan: plan2 } = chosen;
+    const colW = (inner - gap * (cols - 1)) / cols;
+    const colX = Array.from({ length: cols }, (_, i) => LEG.x + i * (colW + gap));
 
     for (const { row, col, y } of plan2.placed) {
-      if (col > 1) {
-        // ponytail: au-delà de 2 colonnes on déborde sur une 2e page
+      if (col >= cols) {
+        // ponytail: au-delà du nombre de colonnes on déborde sur une 2e page
         doc.addPage('a4', 'landscape');
         drawFrame(doc);
         doc.setFont('helvetica', 'bold');

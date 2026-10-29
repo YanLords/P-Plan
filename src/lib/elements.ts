@@ -118,8 +118,8 @@ export const TOOL_GROUPS: ToolGroup[] = [
 export const groupOf = (kind: Kind): ToolGroup | undefined => TOOL_GROUPS.find((g) => g.members.includes(kind));
 
 export const PATHS: Partial<Record<Kind, string>> = {
-  artifice:
-    '<path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.2 5.2l2.1 2.1M16.7 16.7l2.1 2.1M18.8 5.2l-2.1 2.1M7.3 16.7l-2.1 2.1"/><circle cx="12" cy="12" r="3.1" fill="currentColor"/>',
+  // carré plein (ancienne icône soleil d'artifice : src/lib/icons/archive/artifice.svg)
+  artifice: '<rect x="4" y="4" width="16" height="16" rx="1.5" fill="currentColor"/>',
   barrierage: '<path d="M3 8h18M3 16h18M7 8v8M12 8v8M17 8v8"/>',
   sortie: '<path d="M3 12h13"/><path d="m12 6 6 6-6 6"/>',
   zone_public:

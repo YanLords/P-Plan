@@ -9,7 +9,7 @@ export const LS_KEY = 'plan-de-feu:autosave';
 export function emptyPlan(): Plan {
   return {
     version: 1,
-    titre: 'Plan de disposition',
+    titre: 'Schéma de mise en oeuvre',
     site: '',
     date: new Date().toISOString().slice(0, 10),
     center: [46.6, 2.4],

@@ -486,6 +486,8 @@
       zoom: store.plan.zoom,
       zoomControl: true,
       worldCopyJump: true,
+      // les fonds s'arrêtent à 19 : au-delà, leurs tuiles sont agrandies
+      maxZoom: 22,
     });
     map = m;
     overlay = L.layerGroup().addTo(m);

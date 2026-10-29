@@ -141,6 +141,20 @@
         </div>
 
         <div class="row">
+          <span>Fond rond des icônes</span>
+          <button
+            class="switch"
+            aria-label="Fond rond blanc derrière les icônes de la carte"
+            role="switch"
+            aria-checked={settings.value.pinDisc}
+            class:on={settings.value.pinDisc}
+            onclick={() => settings.set('pinDisc', !settings.value.pinDisc)}
+          >
+            <span></span>
+          </button>
+        </div>
+
+        <div class="row">
           <span>Légende à l’écran</span>
           <button
             class="switch"

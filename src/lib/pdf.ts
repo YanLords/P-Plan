@@ -161,14 +161,38 @@ function fitText(doc: jsPDF, text: string, maxWidth: number): string {
   return `${t}…`;
 }
 
+/** Une rangée de légende découpée en lignes (rien n'est tronqué). */
+type LegBox = { head: string[]; details: string[]; note: string[]; lines: number; h: number };
+
+/** Mesure une rangée : libellé et détail sur plusieurs lignes si besoin, note comprise. */
+function legendBox(doc: jsPDF, row: LegRow, maxW: number, fontPt: number, noteStep: number): LegBox {
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(fontPt);
+  const head = wrapText(doc, row.label, maxW, Infinity);
+  let details: string[] = [];
+  if (row.details) {
+    doc.setFont('helvetica', 'normal');
+    details = wrapText(doc, row.details, maxW, Infinity);
+  }
+  let note: string[] = [];
+  if (row.note) {
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(Math.max(4.4, fontPt - 0.8));
+    note = wrapText(doc, row.note, maxW, Infinity);
+  }
+  const lines = head.length + details.length;
+  const h = fontPt * 0.72 + (lines - 1) * fontPt * 0.4 + note.length * noteStep;
+  return { head, details, note, lines, h };
+}
+
 function legendRow(
   doc: jsPDF,
   row: LegRow,
   x: number,
   y: number,
-  w: number,
   icon: string | null,
-  fontPt: number
+  fontPt: number,
+  box: LegBox
 ): void {
   const [cr, cg, cb] = hexToRgb(row.color);
   if (KIND_META[row.kind].shape === 'line') {
@@ -188,20 +212,16 @@ function legendRow(
     doc.roundedRect(x, y - 2.4, 2.8, 2.8, 0.8, 0.8, 'F');
   }
   const tx = x + 4.8;
-  const maxW = w - 4.8;
+  const lineH = fontPt * 0.4;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(fontPt);
   doc.setTextColor(...INK);
-  const head = fitText(doc, row.label, maxW);
-  doc.text(head, tx, y);
+  box.head.forEach((t, i) => doc.text(t, tx, y + i * lineH));
 
-  const headW = doc.getTextWidth(head) + 1.4;
-  if (row.details && headW < maxW) {
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...MUTED);
-    doc.text(fitText(doc, row.details, maxW - headW), tx + headW, y);
-  }
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...MUTED);
+  box.details.forEach((t, i) => doc.text(t, tx, y + (box.head.length + i) * lineH));
 }
 
 /** Cadre extérieur du plan (filet unique). */
@@ -478,14 +498,15 @@ export async function buildPdf(
 
     // rangées placées colonne par colonne, de haut en bas ; une page pleine passe à la suivante
     const LEG_TOP_NEXT = 24; // haut de la légende sur les pages suivantes
-    const paginate = (step: number, cols: number) => {
-      const pages: { row: LegRow; col: number; y: number }[][] = [[]];
+    const paginate = (fontPt: number, cols: number) => {
+      const colW = (inner - gap * (cols - 1)) / cols;
+      const pages: { row: LegRow; col: number; y: number; box: LegBox }[][] = [[]];
       let col = 0;
       let y = 0;
       rows.forEach((row) => {
-        const h = step + (row.note ? noteStep : 0);
+        const box = legendBox(doc, row, colW - 4.8, fontPt, noteStep);
         const limit = pages.length === 1 ? avail : LEG.bottom - LEG_TOP_NEXT;
-        if (y > 0 && y + h > limit) {
+        if (y > 0 && y + box.h > limit) {
           col++;
           y = 0;
           if (col >= cols) {
@@ -493,18 +514,18 @@ export async function buildPdf(
             col = 0;
           }
         }
-        pages[pages.length - 1].push({ row, col, y });
-        y += h;
+        pages[pages.length - 1].push({ row, col, y, box });
+        y += box.h;
       });
       return pages;
     };
 
     // la plus grande police qui tient sur une page, avec le moins de colonnes possible ;
     // sinon 7,2 pt sur 4 colonnes, et le reste sur les pages suivantes
-    let chosen = { fontPt: 7.2, cols: 4, pages: paginate(7.2 * 0.72, 4) };
+    let chosen = { fontPt: 7.2, cols: 4, pages: paginate(7.2, 4) };
     search: for (const f of [8.2, 8.0, 7.8, 7.6, 7.4, 7.2]) {
       for (const cols of [2, 3, 4]) {
-        const pages = paginate(f * 0.72, cols);
+        const pages = paginate(f, cols);
         if (pages.length === 1) {
           chosen = { fontPt: f, cols, pages };
           break search;
@@ -527,16 +548,16 @@ export async function buildPdf(
       // sur les pages suivantes, la légende part du bord gauche du cadre
       const pageTop = p === 0 ? top : LEG_TOP_NEXT;
       const pageX = (col: number) => (p === 0 ? colX[col] : FRAME.x + 6 + col * (colW + gap));
-      for (const { row, col, y } of pagePlaced) {
+      for (const { row, col, y, box } of pagePlaced) {
         const lineY = pageTop + y + 2;
-        legendRow(doc, row, pageX(col), lineY, colW, icons.get(`${row.kind}|${row.color}`) ?? null, fontPt);
-        if (row.note) {
-          // la note de l'élément, juste sous sa ligne
+        legendRow(doc, row, pageX(col), lineY, icons.get(`${row.kind}|${row.color}`) ?? null, fontPt, box);
+        // la note de l'élément, juste sous le libellé
+        box.note.forEach((t, i) => {
           doc.setFont('helvetica', 'italic');
           doc.setFontSize(Math.max(4.4, fontPt - 0.8));
           doc.setTextColor(60, 60, 60);
-          doc.text(fitText(doc, row.note, colW - 5), pageX(col) + 4.6, lineY + noteStep);
-        }
+          doc.text(t, pageX(col) + 4.6, lineY + (box.lines - 1) * fontPt * 0.4 + noteStep * (i + 1));
+        });
       }
     }
 

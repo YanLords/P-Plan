@@ -5,6 +5,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+## [0.4.1] — 2026-10-29
+
 ### Ajouté
 
 - **Nouveaux éléments** : Bouche incendie, Camion pompier, Engin, Personnel JCO et Électricité. Ils n'ont pas de touche par défaut ; leur raccourci se configure dans les réglages.

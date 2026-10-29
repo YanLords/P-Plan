@@ -1,7 +1,7 @@
 <script lang="ts">
   import { store } from './store.svelte';
   import { settings } from './settings.svelte';
-  import { KIND_META, RULER, TOOL_ORDER, groupOf, type Kind, type ToolGroup } from './elements';
+  import { KIND_META, RULER, TOOL_ORDER, canSpread, groupOf, type Kind, type ToolGroup } from './elements';
   import { kindIcon } from './icons';
 
   let {
@@ -192,7 +192,7 @@
           class="item"
           class:active={store.tool === k}
           onclick={() => clickTool(k)}
-          title={`${KIND_META[k].label}${k === 'artifice' ? ' — Tab bascule point / tracé' : ''} (${settings.value.shortcuts[k] || '—'})`}
+          title={`${KIND_META[k].label}${canSpread(k) ? ' — Tab bascule normal / tracé réparti' : ''} (${settings.value.shortcuts[k] || '—'})`}
         >
           <span class="ico" style="--c:{KIND_META[k].color}">{@html TOOL_ICON[k]}</span>
           <span class="lbl">{KIND_META[k].label}</span>

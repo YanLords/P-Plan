@@ -8,6 +8,7 @@
   import WhatsNew from './lib/WhatsNew.svelte';
   import { store } from './lib/store.svelte';
   import { LS_KEY } from './lib/store.svelte';
+  import { KIND_META, canSpread, type Kind } from './lib/elements';
   import { settings } from './lib/settings.svelte';
   import { savePlan, openPlan, saveFile, slug, takePendingPlans } from './lib/files';
   import { buildPdf } from './lib/pdf';
@@ -188,11 +189,12 @@
       notify(store.publicIcon ? 'Zone public : icône' : 'Zone public : zone');
       return;
     }
-    // artifice : Tab alterne point / tracé (répartition tous les X m le long)
-    if (e.key === 'Tab' && store.tool === 'artifice') {
+    // Tab alterne le mode normal / tracé réparti tous les X m (types répartissables)
+    if (e.key === 'Tab' && canSpread(store.tool)) {
       e.preventDefault();
-      store.setArtificeTrace(!store.artificeTrace);
-      notify(store.artificeTrace ? 'Artifice : tracé — répartition tous les X m' : 'Artifice : point');
+      store.setSpreadTrace(!store.spreadTrace);
+      const label = KIND_META[store.tool as Kind].label;
+      notify(store.spreadTrace ? `${label} : tracé — répartition tous les X m` : `${label} : normal`);
       return;
     }
 

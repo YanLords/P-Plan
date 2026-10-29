@@ -4,7 +4,18 @@
   import 'leaflet/dist/leaflet.css';
   import { store } from './store.svelte';
   import { settings } from './settings.svelte';
-  import { KIND_META, RULER, colorOf, isFond, isKindTool, isShape, isZone, TOOL_ORDER, type PElement } from './elements';
+  import {
+    KIND_META,
+    RULER,
+    canSpread,
+    colorOf,
+    isFond,
+    isKindTool,
+    isShape,
+    isZone,
+    TOOL_ORDER,
+    type PElement,
+  } from './elements';
   import { kindIcon } from './icons';
   import { destinationPoint, formatMeters, haversine, ringLength, snapDistance } from './geo';
   import { kindCursor } from './cursors';
@@ -584,7 +595,7 @@
       : store.tool === 'select'
         ? 'Cliquez un élément pour l’éditer · glissez pour déplacer'
         : shaping
-          ? store.tool === 'artifice' && store.artificeTrace
+          ? canSpread(store.tool) && store.spreadTrace
             ? 'Cliquez les sommets · glissez pour ajuster · Entrée : répartition tous les X m le long du tracé'
             : 'Cliquez les sommets · glissez pour ajuster · Entrée pour terminer'
           : isKindTool(store.tool)
@@ -726,9 +737,11 @@
   {#if shaping}
     <div class="draft-bar">
       <span>{store.draft.length} point{store.draft.length > 1 ? 's' : ''}</span>
-      {#if store.tool === 'artifice' && store.artificeTrace}
+      {#if canSpread(store.tool) && store.spreadTrace}
         <label class="step">tous les <input type="number" min="1" bind:value={store.spreadSpacing} /> m</label>
-        <label class="step">DS <input type="number" min="0" value={store.spreadDs} oninput={(e) => (store.spreadDs = snapDistance(e.currentTarget.valueAsNumber))} /> m</label>
+        {#if store.tool === 'artifice'}
+          <label class="step">DS <input type="number" min="0" value={store.spreadDs} oninput={(e) => (store.spreadDs = snapDistance(e.currentTarget.valueAsNumber))} /> m</label>
+        {/if}
         <label class="step">
           <input
             type="color"

@@ -147,6 +147,10 @@ export const isShape = (kind: Kind) => KIND_META[kind].shape !== 'point';
 /** Élément de fond (bateau) : dessiné sous les autres, jamais devant. */
 export const isFond = (kind: Kind) => kind === 'bateau';
 
+/** Types répartissables : Tab bascule entre un tracé réparti tous les X m et le mode normal. */
+export const SPREAD_KINDS: Kind[] = ['artifice', 'extincteur', 'son', 'bateau', 'zone_perso'];
+export const canSpread = (tool: string): boolean => (SPREAD_KINDS as string[]).includes(tool);
+
 /** Types encore connus : sert à écarter les éléments d'anciens plans. */
 export const KNOWN_KINDS = Object.keys(KIND_META) as Kind[];
 

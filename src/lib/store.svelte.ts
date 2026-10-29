@@ -1,5 +1,5 @@
 import type { Kind, PElement, Plan, Tool } from './elements';
-import { KIND_META, cloneElement, isKindTool, isShape, isZone, sanitizePlan } from './elements';
+import { KIND_META, canSpread, cloneElement, isKindTool, isShape, isZone, sanitizePlan } from './elements';
 import { History } from './history';
 import { repeatPoints, ringCentroid, snapDistance } from './geo';
 import { settings } from './settings.svelte';
@@ -110,7 +110,7 @@ class PlanStore {
   publicIcon = $state(false);
 
   /** Artifice placé en tracé (réparti tous les X m le long) au lieu d'un point (Tab pour alterner). */
-  artificeTrace = $state(false);
+  spreadTrace = $state(false);
   /** pas (m) de la répartition en mode tracé artifice */
   spreadSpacing = $state(50);
   /** distance de sécurité (m) portée par les artifices répartis (défaut 20 si vide/0) */
@@ -118,8 +118,8 @@ class PlanStore {
   /** couleur des artifices répartis ('' = défaut du type) */
   spreadColor = $state('');
 
-  setArtificeTrace(on: boolean) {
-    this.artificeTrace = on;
+  setSpreadTrace(on: boolean) {
+    this.spreadTrace = on;
     this.draft = [];
   }
 
@@ -132,7 +132,7 @@ class PlanStore {
   get drawsShape(): boolean {
     return (
       isKindTool(this.tool) &&
-      (isShape(this.tool) || (this.tool === 'artifice' && this.artificeTrace)) &&
+      (isShape(this.tool) || (canSpread(this.tool) && this.spreadTrace)) &&
       !(this.tool === 'zone_public' && this.publicIcon)
     );
   }
@@ -239,25 +239,25 @@ class PlanStore {
   finishDraft(): boolean {
     const ring = this.draft;
     const kind: Kind | null =
-      isKindTool(this.tool) && (isShape(this.tool) || (this.tool === 'artifice' && this.artificeTrace))
+      isKindTool(this.tool) && (isShape(this.tool) || (canSpread(this.tool) && this.spreadTrace))
         ? this.tool
         : null;
     if (!kind) return false;
 
-    // mode tracé artifice (Tab) : on répartit le long du tracé, la ligne elle-même n'est pas gardée
-    if (kind === 'artifice' && this.artificeTrace) {
+    // mode tracé (Tab) : on répartit le long du tracé, la ligne elle-même n'est pas gardée
+    if (canSpread(kind) && this.spreadTrace) {
       const min = 1;
       if (ring.length < min) return false;
       const points = ring.map((p) => [...p] as [number, number]);
       const placed = repeatPoints(points, this.spreadSpacing);
       // ds 0/vide → défaut 20 m posé par addPoint ; couleur vide → défaut du type
       const extra: Partial<PElement> = {
-        ds: this.spreadDs > 0 ? this.spreadDs : undefined,
+        ...(kind === 'artifice' ? { ds: this.spreadDs > 0 ? this.spreadDs : undefined } : {}),
         color: this.spreadColor || undefined,
       };
-      for (const at of placed) this.addPoint('artifice', at, extra);
-      // tracé plus court que le pas : un seul artifice au premier sommet
-      if (!placed.length) this.addPoint('artifice', points[0], extra);
+      for (const at of placed) this.addPoint(kind, at, extra);
+      // tracé plus court que le pas : un seul élément au premier sommet
+      if (!placed.length) this.addPoint(kind, points[0], extra);
       this.draft = [];
       this.tool = 'select';
       return true;

@@ -259,7 +259,7 @@
 
           // la bulle du rayon reste affichée sur le plan (pas seulement à la souris)
           if (settings.value.showLabels) {
-            ray.bindTooltip(`<b style="color:${color}">DS ${ds} m</b>`, {
+            ray.bindTooltip(`<b style="color:#000">DS ${ds} m</b>`, {
               permanent: true,
               direction: 'top',
               offset: [0, -3],

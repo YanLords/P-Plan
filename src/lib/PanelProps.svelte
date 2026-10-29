@@ -1,5 +1,6 @@
 <script lang="ts">
   import { store } from './store.svelte';
+  import { settings } from './settings.svelte';
   import { KIND_META, colorOf, isZone } from './elements';
   import { isTintable } from './icons';
   import { formatCoord, formatMeters, ringArea, ringLength } from './geo';
@@ -21,6 +22,16 @@
       <span class="badge" style="--c:{colorOf(el)}">{KIND_META[el.kind].label}</span>
       <button class="close" onclick={() => store.select(null)} title="Fermer">×</button>
     </header>
+
+    <div class="fond">
+      <span>Fond rond des icônes</span>
+      <button
+        class:on={settings.value.pinDisc}
+        aria-pressed={settings.value.pinDisc}
+        onclick={() => settings.set('pinDisc', !settings.value.pinDisc)}
+        title="Fond rond blanc derrière les icônes de la carte"
+      >{settings.value.pinDisc ? 'Activé' : 'Désactivé'}</button>
+    </div>
 
     <label>
       <span>Libellé</span>
@@ -132,6 +143,27 @@
     gap: 10px;
     max-height: calc(100% - 24px);
     overflow-y: auto;
+  }
+
+  .fond {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .fond button {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--sidebar-border);
+    color: var(--text-secondary);
+  }
+
+  .fond button.on {
+    background: var(--accent-light);
+    color: var(--text-primary);
   }
 
   header {

@@ -1,6 +1,5 @@
 <script lang="ts">
   import { store } from './store.svelte';
-  import { settings } from './settings.svelte';
   import { KIND_META, colorOf } from './elements';
   import { kindIcon } from './icons';
 
@@ -11,13 +10,6 @@
   <section class="legend" class:collapsed={!open}>
     <header>
       <h2>Légende · {store.plan.elements.length}</h2>
-      <button
-        class="disc"
-        class:on={settings.value.pinDisc}
-        aria-pressed={settings.value.pinDisc}
-        onclick={() => settings.set('pinDisc', !settings.value.pinDisc)}
-        title="Fond rond blanc derrière les icônes de la carte"
-      >Fond rond</button>
       <button onclick={() => (open = !open)} title={open ? 'Replier' : 'Déplier'}>{open ? '−' : '+'}</button>
     </header>
     {#if open}
@@ -70,22 +62,6 @@
     letter-spacing: 0.4px;
     color: var(--text-muted);
     font-weight: 600;
-  }
-
-  header .disc {
-    width: auto;
-    height: auto;
-    margin-left: auto;
-    font-size: 11px;
-    padding: 2px 7px;
-    border-radius: 6px;
-    border: 1px solid var(--sidebar-border);
-    color: var(--text-secondary);
-  }
-
-  header .disc.on {
-    background: var(--accent-light);
-    color: var(--text-primary);
   }
 
   header button {

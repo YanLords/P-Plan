@@ -41,7 +41,8 @@
     if (!map || baseKey === k) return;
     baseKey = k;
     baseLayer?.remove();
-    baseLayer = L.tileLayer(TILES[k].url, { attribution: TILES[k].attr, maxZoom: TILES[k].max });
+    // tuiles natives jusqu'à `max`, agrandies au-delà (sinon la couche disparaît)
+    baseLayer = L.tileLayer(TILES[k].url, { attribution: TILES[k].attr, maxNativeZoom: TILES[k].max, maxZoom: 22 });
     baseLayer.addTo(map);
     baseLayer.bringToBack();
   }

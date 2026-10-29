@@ -172,6 +172,15 @@ textarea {
   background: rgba(255, 255, 255, 0.82) !important;
 }
 
+/* étiquettes au survol : grandes, lisibles sur le satellite */
+.leaflet-tooltip:not(.pf-ds) {
+  font-size: 20px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
 .leaflet-tooltip {
   font-size: 11px;
   border-radius: 6px;

@@ -36,13 +36,19 @@
       max: 19,
     },
   };
+  // zoom écran au-delà des tuiles natives : Leaflet agrandit les tuiles (maxNativeZoom)
+  const MAX_ZOOM = 22;
 
   function ensureBase(k: 'osm' | 'sat') {
     if (!map || baseKey === k) return;
     baseKey = k;
     baseLayer?.remove();
     // tuiles natives jusqu'à `max`, agrandies au-delà (sinon la couche disparaît)
-    baseLayer = L.tileLayer(TILES[k].url, { attribution: TILES[k].attr, maxNativeZoom: TILES[k].max, maxZoom: 22 });
+    baseLayer = L.tileLayer(TILES[k].url, {
+      attribution: TILES[k].attr,
+      maxNativeZoom: TILES[k].max,
+      maxZoom: MAX_ZOOM,
+    });
     baseLayer.addTo(map);
     baseLayer.bringToBack();
   }
@@ -395,10 +401,13 @@
         L.marker(last, { icon: arrowIcon(prev, last, toolColor), interactive: false }).addTo(draftGroup);
       }
     }
-    pts.forEach((p) =>
-      L.circleMarker(p, { radius: 4, color: '#1A1A1A', weight: 1.5, fillColor: '#fff', fillOpacity: 1 }).addTo(
-        draftGroup!
-      )
+    // poignées : glisser pour ajuster un sommet déjà posé, sans terminer le tracé
+    pts.forEach((p, i) =>
+      L.marker(p, { icon: handleIcon(), draggable: true, zIndexOffset: 500 })
+        .on('dragend', (ev: L.DragEndEvent) =>
+          store.updateDraftVertex(i, [ev.target.getLatLng().lat, ev.target.getLatLng().lng])
+        )
+        .addTo(draftGroup!)
     );
   }
 
@@ -492,7 +501,7 @@
       zoomControl: true,
       worldCopyJump: true,
       // les fonds s'arrêtent à 19 : au-delà, leurs tuiles sont agrandies
-      maxZoom: 22,
+      maxZoom: MAX_ZOOM,
     });
     map = m;
     overlay = L.layerGroup().addTo(m);
@@ -575,7 +584,9 @@
       : store.tool === 'select'
         ? 'Cliquez un élément pour l’éditer · glissez pour déplacer'
         : shaping
-          ? 'Cliquez les sommets · Entrée pour terminer'
+          ? store.tool === 'artifice' && store.artificeTrace
+            ? 'Cliquez les sommets · glissez pour ajuster · Entrée : répartition tous les X m le long du tracé'
+            : 'Cliquez les sommets · glissez pour ajuster · Entrée pour terminer'
           : isKindTool(store.tool)
             ? `Cliquez sur la carte pour placer : ${store.tool === 'zone_public' && store.publicIcon ? 'icône zone public' : KIND_META[store.tool].label}`
             : ''
@@ -715,12 +726,31 @@
   {#if shaping}
     <div class="draft-bar">
       <span>{store.draft.length} point{store.draft.length > 1 ? 's' : ''}</span>
+      {#if store.tool === 'artifice' && store.artificeTrace}
+        <label class="step">tous les <input type="number" min="1" bind:value={store.spreadSpacing} /> m</label>
+        <label class="step">DS <input type="number" min="0" value={store.spreadDs} oninput={(e) => (store.spreadDs = snapDistance(e.currentTarget.valueAsNumber))} /> m</label>
+        <label class="step">
+          <input
+            type="color"
+            value={store.spreadColor || '#FCA04B'}
+            oninput={(e) => (store.spreadColor = e.currentTarget.value)}
+          />
+          <button class="ghost" onclick={() => (store.spreadColor = '')}>défaut</button>
+        </label>
+      {/if}
       <button
         class="primary"
         disabled={store.draft.length < (isKindTool(store.tool) && isZone(store.tool) ? 3 : 2)}
         onclick={() => store.finishDraft()}
       >
         Terminer
+      </button>
+      <button
+        disabled={!store.draft.length}
+        title="Retirer le dernier point (⌫)"
+        onclick={() => store.removeLastDraftPoint()}
+      >
+        ⟲ Retirer
       </button>
       <button onclick={() => store.cancelDraft()}>Annuler</button>
     </div>
@@ -764,6 +794,42 @@
   .draft-bar,
   .search {
     pointer-events: auto;
+  }
+
+  .draft-bar .step {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--text-muted);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .draft-bar .step input {
+    width: 52px;
+  }
+
+  .draft-bar .step input[type='color'] {
+    width: 26px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid var(--border-card);
+    border-radius: 5px;
+    background: none;
+    cursor: pointer;
+  }
+
+  .draft-bar .ghost {
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 2px;
+  }
+
+  .draft-bar .ghost:hover {
+    color: var(--text-primary);
   }
 
   .search {

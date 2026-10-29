@@ -68,7 +68,7 @@
       </button>
     {/if}
 
-    {#if el.kind === 'artifice' || isZone(el.kind) || el.kind === 'marqueur' || el.kind === 'regie' || isTintable(el.kind)}
+    {#if el.kind === 'artifice' || isZone(el.kind) || el.kind === 'marqueur' || el.kind === 'regie' || el.kind === 'barrierage' || isTintable(el.kind)}
       <label>
         <span>Couleur</span>
         <input
@@ -178,6 +178,8 @@
     flex-direction: column;
     gap: 3px;
   }
+
+
 
   .field > span {
     font-size: 10px;

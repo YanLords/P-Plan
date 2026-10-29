@@ -38,6 +38,37 @@ export function formatCoord(lat: number, lng: number, digits = 5): string {
 }
 
 /** Point situé à `meters` d'un point, dans la direction `bearing` (degrés, 0 = nord). */
+/** Azimut (°) du segment a→b, pour répartir des points le long d'un tracé. */
+export function bearingOf(a: [number, number], b: [number, number]): number {
+  const [la1, ln1] = [(a[0] * Math.PI) / 180, (a[1] * Math.PI) / 180];
+  const [la2, ln2] = [(b[0] * Math.PI) / 180, (b[1] * Math.PI) / 180];
+  const y = Math.sin(ln2 - ln1) * Math.cos(la2);
+  const x = Math.cos(la1) * Math.sin(la2) - Math.sin(la1) * Math.cos(la2) * Math.cos(ln2 - ln1);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
+/**
+ * Points espacés de `spacing` mètres le long d'un tracé ouvert (sans ses extrémités) :
+ * le premier à `spacing` du départ, le dernier seulement s'il tombe exactement sur l'arrivée.
+ */
+export function repeatPoints(ring: [number, number][], spacing: number): [number, number][] {
+  if (spacing <= 0 || ring.length < 2) return [];
+  const pts: [number, number][] = [];
+  let next = spacing;
+  let travelled = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    const a = ring[i];
+    const b = ring[i + 1];
+    const seg = haversine(a, b);
+    while (next <= travelled + seg) {
+      pts.push(destinationPoint(a[0], a[1], next - travelled, bearingOf(a, b)));
+      next += spacing;
+    }
+    travelled += seg;
+  }
+  return pts;
+}
+
 export function destinationPoint(
   lat: number,
   lng: number,

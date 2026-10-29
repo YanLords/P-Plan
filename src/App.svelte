@@ -188,6 +188,13 @@
       notify(store.publicIcon ? 'Zone public : icône' : 'Zone public : zone');
       return;
     }
+    // artifice : Tab alterne point / tracé (répartition tous les X m le long)
+    if (e.key === 'Tab' && store.tool === 'artifice') {
+      e.preventDefault();
+      store.setArtificeTrace(!store.artificeTrace);
+      notify(store.artificeTrace ? 'Artifice : tracé — répartition tous les X m' : 'Artifice : point');
+      return;
+    }
 
     // copier / coller / dupliquer : ⌘C, ⌘V, ⌘D (Ctrl sur Windows)
     if (mod && (key === 'c' || key === 'v' || key === 'd')) {
@@ -210,6 +217,9 @@
       const redone = key === 'y' || e.shiftKey;
       if (redone) {
         if (store.redo()) notify('Rétabli');
+      } else if (store.drawsShape && store.draft.length) {
+        // pendant un tracé, ⌘Z retire le dernier sommet (pas l'état du plan)
+        store.removeLastDraftPoint();
       } else if (store.undo()) {
         notify('Annulé');
       }
@@ -231,6 +241,8 @@
       else store.select(null);
     } else if (e.key === 'Enter' && store.draft.length) {
       store.finishDraft();
+    } else if ((e.key === 'Delete' || e.key === 'Backspace') && store.draft.length) {
+      store.removeLastDraftPoint();
     } else if ((e.key === 'Delete' || e.key === 'Backspace') && store.selection) {
       store.remove(store.selection);
     }

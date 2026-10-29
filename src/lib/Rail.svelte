@@ -192,7 +192,7 @@
           class="item"
           class:active={store.tool === k}
           onclick={() => clickTool(k)}
-          title={`${KIND_META[k].label} (${settings.value.shortcuts[k] || '—'})`}
+          title={`${KIND_META[k].label}${k === 'artifice' ? ' — Tab bascule point / tracé' : ''} (${settings.value.shortcuts[k] || '—'})`}
         >
           <span class="ico" style="--c:{KIND_META[k].color}">{@html TOOL_ICON[k]}</span>
           <span class="lbl">{KIND_META[k].label}</span>

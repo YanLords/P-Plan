@@ -6,9 +6,13 @@
   import {
     SHORTCUT_LABELS,
     SHORTCUT_ORDER,
+    PIN_SCALE_MAX,
+    PIN_SCALE_MIN,
+    PIN_SCALE_STEP,
     UI_SCALE_MAX,
     UI_SCALE_MIN,
     UI_SCALE_STEP,
+    clampPinScale,
     clampScale,
     type ToolKey,
   } from './settings-model';
@@ -86,6 +90,23 @@
             />
             <output>{Math.round(settings.value.uiScale * 100)} %</output>
             <button class="ghost" onclick={() => settings.set('uiScale', 1)}>défaut</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <label for="pin-scale">Taille des icônes</label>
+          <div class="scale">
+            <input
+              id="pin-scale"
+              type="range"
+              min={PIN_SCALE_MIN}
+              max={PIN_SCALE_MAX}
+              step={PIN_SCALE_STEP}
+              value={settings.value.pinScale}
+              oninput={(e) => settings.set('pinScale', clampPinScale(e.currentTarget.valueAsNumber))}
+            />
+            <output>{Math.round(settings.value.pinScale * 100)} %</output>
+            <button class="ghost" onclick={() => settings.set('pinScale', 1)}>défaut</button>
           </div>
         </div>
 

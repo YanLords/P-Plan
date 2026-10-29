@@ -102,8 +102,8 @@ textarea {
   color: var(--c);
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
   cursor: grab;
-  /* --sc : facteur d'impression PDF (1 par défaut) */
-  transform: scale(var(--sc, 1));
+  /* --sc : facteur d'impression PDF (1 par défaut) ; --pin-scale : réglage de taille */
+  transform: scale(calc(var(--sc, 1) * var(--pin-scale, 1)));
   transform-origin: center;
 }
 

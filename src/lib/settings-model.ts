@@ -87,6 +87,8 @@ export interface ToolSettings {
   showLabels: boolean;
   /** fond rond blanc derrière les icônes de la carte */
   pinDisc: boolean;
+  /** taille des icônes de la carte (1 = 100 %) */
+  pinScale: number;
   autosave: boolean;
   shortcuts: Record<ToolKey, string>;
   company: Company;
@@ -95,6 +97,10 @@ export interface ToolSettings {
 export const UI_SCALE_MIN = 0.8;
 export const UI_SCALE_MAX = 1.3;
 export const UI_SCALE_STEP = 0.05;
+
+export const PIN_SCALE_MIN = 0.6;
+export const PIN_SCALE_MAX = 2;
+export const PIN_SCALE_STEP = 0.1;
 
 export const SHORTCUT_ORDER: ToolKey[] = [
   'select',
@@ -176,10 +182,18 @@ export const DEFAULT_SETTINGS: ToolSettings = {
   showLegend: true,
   showLabels: true,
   pinDisc: false,
+  pinScale: 1,
   autosave: true,
   shortcuts: { ...DEFAULT_SHORTCUTS },
   company: { ...EMPTY_COMPANY },
 };
+
+export function clampPinScale(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) return 1;
+  const stepped = Math.round(n / PIN_SCALE_STEP) * PIN_SCALE_STEP;
+  return Math.min(PIN_SCALE_MAX, Math.max(PIN_SCALE_MIN, Number(stepped.toFixed(2))));
+}
 
 export function clampScale(value: unknown): number {
   const n = typeof value === 'number' ? value : Number(value);
@@ -238,6 +252,7 @@ export function sanitizeSettings(raw: unknown): ToolSettings {
     showLegend: bool(src.showLegend, DEFAULT_SETTINGS.showLegend),
     showLabels: bool(src.showLabels, DEFAULT_SETTINGS.showLabels),
     pinDisc: bool(src.pinDisc, DEFAULT_SETTINGS.pinDisc),
+    pinScale: clampPinScale(src.pinScale ?? DEFAULT_SETTINGS.pinScale),
     autosave: bool(src.autosave, DEFAULT_SETTINGS.autosave),
     shortcuts,
     company: sanitizeCompany(src.company),

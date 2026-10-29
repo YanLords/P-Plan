@@ -95,26 +95,41 @@ textarea {
 .pf-pin {
   width: 26px;
   height: 26px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  /* pas de fond rond : l'icône seule, avec une ombre pour rester lisible sur la carte */
   color: var(--c);
-  border: 1.5px solid var(--c);
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.28);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
   cursor: grab;
   /* --sc : facteur d'impression PDF (1 par défaut) */
   transform: scale(var(--sc, 1));
   transform-origin: center;
 }
 
-.pf-pin.sel {
+/* fond rond optionnel (réglage « Fond rond » de la légende) */
+.pin-disc .pf-pin {
+  background: #fff;
+  border: 1.5px solid var(--c);
+  border-radius: 50%;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.28);
+  filter: none;
+}
+
+.pin-disc .pf-pin.sel {
   background: var(--c);
   color: #fff;
   box-shadow:
     0 0 0 3px rgba(252, 160, 75, 0.35),
     0 1px 5px rgba(0, 0, 0, 0.3);
+  filter: none;
+}
+
+.pf-pin.sel {
+  filter:
+    drop-shadow(0 0 2px rgba(252, 160, 75, 0.95))
+    drop-shadow(0 0 4px rgba(252, 160, 75, 0.6))
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
 .pf-arrow {

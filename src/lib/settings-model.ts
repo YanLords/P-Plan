@@ -85,6 +85,8 @@ export interface ToolSettings {
   showRings: boolean;
   showLegend: boolean;
   showLabels: boolean;
+  /** fond rond blanc derrière les icônes de la carte */
+  pinDisc: boolean;
   autosave: boolean;
   shortcuts: Record<ToolKey, string>;
   company: Company;
@@ -170,6 +172,7 @@ export const DEFAULT_SETTINGS: ToolSettings = {
   showRings: true,
   showLegend: true,
   showLabels: true,
+  pinDisc: false,
   autosave: true,
   shortcuts: { ...DEFAULT_SHORTCUTS },
   company: { ...EMPTY_COMPANY },
@@ -231,6 +234,7 @@ export function sanitizeSettings(raw: unknown): ToolSettings {
     showRings: bool(src.showRings, DEFAULT_SETTINGS.showRings),
     showLegend: bool(src.showLegend, DEFAULT_SETTINGS.showLegend),
     showLabels: bool(src.showLabels, DEFAULT_SETTINGS.showLabels),
+    pinDisc: bool(src.pinDisc, DEFAULT_SETTINGS.pinDisc),
     autosave: bool(src.autosave, DEFAULT_SETTINGS.autosave),
     shortcuts,
     company: sanitizeCompany(src.company),

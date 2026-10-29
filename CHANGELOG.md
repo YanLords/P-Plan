@@ -13,6 +13,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ### Modifié
 
+- Les icônes de la carte n'ont plus de fond rond. Le bouton « Fond rond », dans l'en-tête de la légende, le réactive (réglage mémorisé).
 - **Nouvelles icônes** pour Point d'eau, Extincteur, Accueil secours, Agent de surveillance et Son.
 
 ## [0.4.0] — 2026-10-27

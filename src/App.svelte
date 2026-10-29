@@ -281,7 +281,7 @@
       </div>
     </header>
 
-    <div class="stage">
+    <div class="stage" class:pin-disc={settings.value.pinDisc}>
       <div class="map" bind:this={mapEl}></div>
       <MapView el={mapEl} bind:this={mapView} />
       {#if settings.value.showLegend}

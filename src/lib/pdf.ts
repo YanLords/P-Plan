@@ -61,6 +61,17 @@ function toJpeg(src: HTMLCanvasElement, maxWidth: number): string {
 /** Icône de l'élément rendue en PNG (jsPDF ne sait pas dessiner un SVG). */
 const iconCache = new Map<string, string>();
 
+/** Couleur claire (ex. blanc) : sur papier elle disparaît, elle reçoit alors un contour noir. */
+function isLight(hex: string): boolean {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 200;
+}
+
 async function iconPng(kind: Kind, color: string): Promise<string | null> {
   const key = `${kind}|${color}`;
   const cached = iconCache.get(key);
@@ -73,6 +84,21 @@ async function iconPng(kind: Kind, color: string): Promise<string | null> {
     canvas.width = canvas.height = 64;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
+    if (isLight(color)) {
+      // silhouette noire du dessin, reproduite autour de l'icône (contour de 4 px sur 64)
+      const mask = document.createElement('canvas');
+      mask.width = mask.height = 64;
+      const mctx = mask.getContext('2d');
+      if (!mctx) return null;
+      mctx.drawImage(img, 0, 0, 64, 64);
+      mctx.globalCompositeOperation = 'source-in';
+      mctx.fillStyle = '#000';
+      mctx.fillRect(0, 0, 64, 64);
+      for (let a = 0; a < 16; a++) {
+        const angle = (a / 16) * Math.PI * 2;
+        ctx.drawImage(mask, Math.cos(angle) * 4, Math.sin(angle) * 4, 64, 64);
+      }
+    }
     ctx.drawImage(img, 0, 0, 64, 64);
     const png = canvas.toDataURL('image/png');
     iconCache.set(key, png);

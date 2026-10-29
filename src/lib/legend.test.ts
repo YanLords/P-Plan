@@ -58,6 +58,23 @@ test('zones public en icône : une seule ligne, zones en surface gardées', () =
   assert.equal(rows.filter((r) => r.kind === 'zone_public').length, 2);
 });
 
+test('légende triée par type (ordre du rail), artifices gardés ensemble', () => {
+  const rows = legendRowsFor(
+    plan([
+      { id: 'e1', kind: 'extincteur', label: 'Extincteur', lat: 0, lng: 0 },
+      { id: 'a1', kind: 'artifice', label: 'Artifice', lat: 0, lng: 0, color: '#111111' },
+      { id: 'b1', kind: 'barrierage', label: 'Barriérage', lat: 0, lng: 0, ring: [[0, 0], [0, 0.01]] },
+      { id: 'a2', kind: 'artifice', label: 'Artifice', lat: 0, lng: 0, color: '#222222' },
+      { id: 'm1', kind: 'marqueur', label: 'Marqueur A', lat: 0, lng: 0 },
+    ])
+  );
+  // extincteur (placé en premier sur le plan) doit passer après artifice/barriérage
+  assert.deepEqual(
+    rows.map((r) => r.kind),
+    ['artifice', 'artifice', 'barrierage', 'extincteur', 'marqueur']
+  );
+});
+
 test('commune extraite des formats BAN et Nominatim', () => {
   assert.equal(cityOf('Montpellier, Hérault, Occitanie, France'), 'Montpellier');
   assert.equal(cityOf('12 Rue de la Loge, 34000 Montpellier'), 'Montpellier');

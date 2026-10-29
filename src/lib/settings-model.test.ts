@@ -25,15 +25,22 @@ test('raccourcis par défaut : ceux de la spécification', () => {
     sortie: 'o',
     accueil_secours: 'q',
     point_eau: 'e',
+    bouche_incendie: '',
     bouee: 'u',
     extincteur: 'w',
     son: 's',
     bateau: 'f',
     surveillance: 'g',
+    personnel_jco: '',
+    camion_pompier: '',
+    engin: '',
+    electricite: '',
     regie: 'c',
     marqueur: 'm',
   });
   for (const tool of SHORTCUT_ORDER) {
+    // un outil sans touche par défaut n'a rien à retrouver
+    if (!DEFAULT_SHORTCUTS[tool]) continue;
     assert.equal(toolForShortcut(DEFAULT_SHORTCUTS, DEFAULT_SHORTCUTS[tool]), tool);
   }
 });

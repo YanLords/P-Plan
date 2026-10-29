@@ -88,29 +88,48 @@ textarea {
   border: none;
 }
 
+.pf-img {
+  display: block;
+}
+
 .pf-pin {
   width: 26px;
   height: 26px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  /* pas de fond rond : l'icône seule, avec une ombre pour rester lisible sur la carte */
   color: var(--c);
-  border: 1.5px solid var(--c);
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.28);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
   cursor: grab;
-  /* --sc : facteur d'impression PDF (1 par défaut) */
-  transform: scale(var(--sc, 1));
+  /* --sc : facteur d'impression PDF (1 par défaut) ; --pin-scale : réglage de taille */
+  transform: scale(calc(var(--sc, 1) * var(--pin-scale, 1)));
   transform-origin: center;
 }
 
-.pf-pin.sel {
+/* fond rond optionnel (réglage « Fond rond » de la légende) */
+.pin-disc .pf-pin {
+  background: #fff;
+  border: 1.5px solid var(--c);
+  border-radius: 50%;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.28);
+  filter: none;
+}
+
+.pin-disc .pf-pin.sel {
   background: var(--c);
   color: #fff;
   box-shadow:
     0 0 0 3px rgba(252, 160, 75, 0.35),
     0 1px 5px rgba(0, 0, 0, 0.3);
+  filter: none;
+}
+
+.pf-pin.sel {
+  filter:
+    drop-shadow(0 0 2px rgba(252, 160, 75, 0.95))
+    drop-shadow(0 0 4px rgba(252, 160, 75, 0.6))
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
 .pf-arrow {
@@ -153,6 +172,15 @@ textarea {
   background: rgba(255, 255, 255, 0.82) !important;
 }
 
+/* étiquettes au survol : grandes, lisibles sur le satellite */
+.leaflet-tooltip:not(.pf-ds) {
+  font-size: 20px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
 .leaflet-tooltip {
   font-size: 11px;
   border-radius: 6px;
@@ -167,8 +195,8 @@ textarea {
   border: 1px solid rgba(0, 0, 0, 0.14);
   border-radius: 999px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
-  padding: 1px 6px;
-  font-size: 9.5px;
+  padding: 3px 10px;
+  font-size: 19.33px; /* 18 px + 1 pt */
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }

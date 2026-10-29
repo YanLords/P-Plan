@@ -15,6 +15,7 @@ import {
   formatMeters,
   scaleBarLength,
   scaleDenominator,
+  repeatPoints,
 } from './geo.ts';
 
 test('résolution Web Mercator au zoom 0 / équateur', () => {
@@ -180,4 +181,42 @@ test('scaleBarLength : valeurs rondes 1-2-5, jamais plus large que maxMm', () =>
 
   assert.deepEqual(scaleBarLength(0, 40), { meters: 0, mm: 0 });
   assert.deepEqual(scaleBarLength(16, 0), { meters: 0, mm: 0 });
+});
+
+test('repeatPoints : un point tous les X m le long du tracé', () => {
+  // 0,001° de longitude à l'équateur ≈ 111,32 m
+  const ring: [number, number][] = [
+    [0, 0],
+    [0, 0.001],
+  ];
+  const len = haversine(ring[0], ring[1]);
+  assert.ok(Math.abs(len - 111.32) < 1);
+
+  // pas 50 m : un seul point à 50 m du départ (100 m non atteint ? si, atteint)
+  const p50 = repeatPoints(ring, 50);
+  assert.equal(p50.length, 2);
+  assert.ok(Math.abs(haversine(ring[0], p50[0]) - 50) < 0.5);
+  assert.ok(Math.abs(haversine(ring[0], p50[1]) - 100) < 0.5);
+
+  // pas exactement la longueur : le dernier point tombe sur l'arrivée
+  const pAll = repeatPoints(ring, len);
+  assert.equal(pAll.length, 1);
+  assert.ok(haversine(pAll[0], ring[1]) < 0.5);
+
+  // tracé en deux segments : le pas traverse les sommets intermédiaires
+  const zig: [number, number][] = [
+    [0, 0],
+    [0, 0.0005],
+    [0, 0.001],
+  ];
+  const p25 = repeatPoints(zig, 25);
+  assert.equal(p25.length, 4);
+  for (const p of p25) {
+    const d = haversine(zig[0], p);
+    assert.ok(Math.abs((d % 25) - 0) < 0.5 || Math.abs((d % 25) - 25) < 0.5, `point à ${d} m hors pas`);
+  }
+
+  // cas dégénérés
+  assert.deepEqual(repeatPoints(ring, 0), []);
+  assert.deepEqual(repeatPoints([[0, 0]], 10), []);
 });

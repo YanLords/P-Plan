@@ -1,5 +1,6 @@
 import {
   KIND_META,
+  TOOL_ORDER,
   colorOf,
   isZone,
   type Kind,
@@ -15,11 +16,16 @@ import { formatMeters, ringArea, ringLength } from './geo.ts';
 export const MERGED: Kind[] = [
   'barrierage',
   'point_eau',
+  'bouche_incendie',
   'bouee',
   'extincteur',
   'son',
   'accueil_secours',
   'surveillance',
+  'personnel_jco',
+  'camion_pompier',
+  'engin',
+  'electricite',
   'regie',
 ];
 
@@ -131,7 +137,13 @@ export function legendRowsFor(plan: Plan): LegRow[] {
     });
   }
 
-  return rows;
+  // tri par type (ordre du rail), stable : les lignes d'un même type
+  // (artifices par couleur, marqueurs…) gardent leur ordre d'apparition
+  const rank = (k: Kind) => {
+    const i = TOOL_ORDER.indexOf(k);
+    return i === -1 ? TOOL_ORDER.length : i;
+  };
+  return rows.sort((a, b) => rank(a.kind) - rank(b.kind));
 }
 
 /**

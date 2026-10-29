@@ -3,15 +3,16 @@ import { toCanvas } from 'html-to-image';
 import QRCode from 'qrcode';
 import { companyIsEmpty, vcardOf, type Company } from './settings-model';
 import type { Plan, Kind } from './elements';
-import { KIND_META, colorOf, kindIconSvg } from './elements';
+import { KIND_META, colorOf } from './elements';
+import { iconSource } from './icons';
 import { formatCoord, formatMeters, metersPerPixel, scaleBarLength } from './geo';
 import { cityOf, legendRowsFor, type LegRow } from './legend';
 
 // A4 paysage : carte pleine largeur en haut, cartouche (gauche) + légende (droite) dessous.
 const FRAME = { x: 8, y: 8, w: 281, h: 194 };
 const MAP = { x: 8, y: FRAME.y, w: 281, maxH: 160 };
-const CART = { x: 8, w: 122 };
-const LEG = { x: 136, w: 153, bottom: 195 };
+const CART = { x: 8, w: 100 };
+const LEG = { x: 114, w: 175, bottom: 195 };
 const FOOT_Y = 199;
 /** Types regroupés en une seule ligne de légende (un seul point d'eau, un seul extincteur…). */
 
@@ -60,18 +61,44 @@ function toJpeg(src: HTMLCanvasElement, maxWidth: number): string {
 /** Icône de l'élément rendue en PNG (jsPDF ne sait pas dessiner un SVG). */
 const iconCache = new Map<string, string>();
 
+/** Couleur claire (ex. blanc) : sur papier elle disparaît, elle reçoit alors un contour noir. */
+function isLight(hex: string): boolean {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 200;
+}
+
 async function iconPng(kind: Kind, color: string): Promise<string | null> {
   const key = `${kind}|${color}`;
   const cached = iconCache.get(key);
   if (cached) return cached;
   try {
     const img = new Image();
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(kindIconSvg(kind, 64, color))}`;
+    img.src = iconSource(kind, color);
     await img.decode();
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = 64;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
+    if (isLight(color)) {
+      // silhouette noire du dessin, reproduite autour de l'icône (contour de 4 px sur 64)
+      const mask = document.createElement('canvas');
+      mask.width = mask.height = 64;
+      const mctx = mask.getContext('2d');
+      if (!mctx) return null;
+      mctx.drawImage(img, 0, 0, 64, 64);
+      mctx.globalCompositeOperation = 'source-in';
+      mctx.fillStyle = '#000';
+      mctx.fillRect(0, 0, 64, 64);
+      for (let a = 0; a < 16; a++) {
+        const angle = (a / 16) * Math.PI * 2;
+        ctx.drawImage(mask, Math.cos(angle) * 4, Math.sin(angle) * 4, 64, 64);
+      }
+    }
     ctx.drawImage(img, 0, 0, 64, 64);
     const png = canvas.toDataURL('image/png');
     iconCache.set(key, png);
@@ -134,14 +161,38 @@ function fitText(doc: jsPDF, text: string, maxWidth: number): string {
   return `${t}…`;
 }
 
+/** Une rangée de légende découpée en lignes (rien n'est tronqué). */
+type LegBox = { head: string[]; details: string[]; note: string[]; lines: number; h: number };
+
+/** Mesure une rangée : libellé et détail sur plusieurs lignes si besoin, note comprise. */
+function legendBox(doc: jsPDF, row: LegRow, maxW: number, fontPt: number, noteStep: number): LegBox {
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(fontPt);
+  const head = wrapText(doc, row.label, maxW, Infinity);
+  let details: string[] = [];
+  if (row.details) {
+    doc.setFont('helvetica', 'normal');
+    details = wrapText(doc, row.details, maxW, Infinity);
+  }
+  let note: string[] = [];
+  if (row.note) {
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(Math.max(4.4, fontPt - 0.8));
+    note = wrapText(doc, row.note, maxW, Infinity);
+  }
+  const lines = head.length + details.length;
+  const h = fontPt * 0.72 + (lines - 1) * fontPt * 0.4 + note.length * noteStep;
+  return { head, details, note, lines, h };
+}
+
 function legendRow(
   doc: jsPDF,
   row: LegRow,
   x: number,
   y: number,
-  w: number,
   icon: string | null,
-  fontPt: number
+  fontPt: number,
+  box: LegBox
 ): void {
   const [cr, cg, cb] = hexToRgb(row.color);
   if (KIND_META[row.kind].shape === 'line') {
@@ -161,20 +212,16 @@ function legendRow(
     doc.roundedRect(x, y - 2.4, 2.8, 2.8, 0.8, 0.8, 'F');
   }
   const tx = x + 4.8;
-  const maxW = w - 4.8;
+  const lineH = fontPt * 0.4;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(fontPt);
   doc.setTextColor(...INK);
-  const head = fitText(doc, row.label, maxW);
-  doc.text(head, tx, y);
+  box.head.forEach((t, i) => doc.text(t, tx, y + i * lineH));
 
-  const headW = doc.getTextWidth(head) + 1.4;
-  if (row.details && headW < maxW) {
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...MUTED);
-    doc.text(fitText(doc, row.details, maxW - headW), tx + headW, y);
-  }
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...MUTED);
+  box.details.forEach((t, i) => doc.text(t, tx, y + (box.head.length + i) * lineH));
 }
 
 /** Cadre extérieur du plan (filet unique). */
@@ -425,7 +472,7 @@ export async function buildPdf(
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(...INK);
-    doc.text('Légende', LEG.x, bandY + 5.4);
+    doc.text('Légende', LEG.x, bandY + 3.6);
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(5.6);
     doc.setTextColor(...MUTED);
@@ -436,68 +483,81 @@ export async function buildPdf(
         LEG.w - 20
       ),
       LEG.x + 21,
-      bandY + 5.4
+      bandY + 3.6
     );
     doc.setDrawColor(...RULE);
     doc.setLineWidth(0.12);
-    doc.line(LEG.x, bandY + 8, LEG.x + LEG.w, bandY + 8);
+    doc.line(LEG.x, bandY + 5.6, LEG.x + LEG.w, bandY + 5.6);
 
     const noteStep = 2.4; // interligne de la note sous sa ligne
-    // 2 colonnes, police réduite tant que ça tient
-    const top = bandY + 12.4;
+    // police de +1 pt au minimum, +2 pt si la légende tient en 2 à 4 colonnes
+    const top = bandY + 10;
     const inner = LEG.w - 4;
-    const colW = inner / 2;
-    const colX = [LEG.x, LEG.x + colW + 4];
+    const gap = 4;
     const avail = LEG.bottom - top;
 
-    // réparti en 2 colonnes de hauteur équilibrée (une note ajoute une ligne)
-    const layout = (step: number) => {
-      const heights = rows.map((r) => step + (r.note ? noteStep : 0));
-      const total = heights.reduce((sum, v) => sum + v, 0);
+    // rangées placées colonne par colonne, de haut en bas ; une page pleine passe à la suivante
+    const LEG_TOP_NEXT = 24; // haut de la légende sur les pages suivantes
+    const paginate = (fontPt: number, cols: number) => {
+      const colW = (inner - gap * (cols - 1)) / cols;
+      const pages: { row: LegRow; col: number; y: number; box: LegBox }[][] = [[]];
       let col = 0;
       let y = 0;
-      const placed: { row: LegRow; col: number; y: number }[] = [];
-      const maxY = [0, 0];
-      heights.forEach((h, i) => {
-        if (col === 0 && y + h > total / 2 && i > 0) {
-          col = 1;
+      rows.forEach((row) => {
+        const box = legendBox(doc, row, colW - 4.8, fontPt, noteStep);
+        const limit = pages.length === 1 ? avail : LEG.bottom - LEG_TOP_NEXT;
+        if (y > 0 && y + box.h > limit) {
+          col++;
           y = 0;
+          if (col >= cols) {
+            pages.push([]);
+            col = 0;
+          }
         }
-        placed.push({ row: rows[i], col, y });
-        y += h;
-        maxY[col] = Math.max(maxY[col], y);
+        pages[pages.length - 1].push({ row, col, y, box });
+        y += box.h;
       });
-      return { placed, maxH: Math.max(maxY[0], maxY[1]) };
+      return pages;
     };
 
-    let fontPt = 6.2;
-    let plan2 = layout(fontPt * 0.72);
-    for (const f of [5.8, 5.4, 5.0, 4.6]) {
-      if (plan2.maxH <= avail) break;
-      fontPt = f;
-      plan2 = layout(fontPt * 0.72);
+    // la plus grande police qui tient sur une page, avec le moins de colonnes possible ;
+    // sinon 7,2 pt sur 4 colonnes, et le reste sur les pages suivantes
+    let chosen = { fontPt: 7.2, cols: 4, pages: paginate(7.2, 4) };
+    search: for (const f of [8.2, 8.0, 7.8, 7.6, 7.4, 7.2]) {
+      for (const cols of [2, 3, 4]) {
+        const pages = paginate(f, cols);
+        if (pages.length === 1) {
+          chosen = { fontPt: f, cols, pages };
+          break search;
+        }
+      }
     }
-    const rowStep = fontPt * 0.72;
+    const { fontPt, cols, pages: legendPages } = chosen;
+    const colW = (inner - gap * (cols - 1)) / cols;
+    const colX = Array.from({ length: cols }, (_, i) => LEG.x + i * (colW + gap));
 
-    for (const { row, col, y } of plan2.placed) {
-      if (col > 1) {
-        // ponytail: au-delà de 2 colonnes on déborde sur une 2e page
+    for (const [p, pagePlaced] of legendPages.entries()) {
+      if (p > 0) {
         doc.addPage('a4', 'landscape');
         drawFrame(doc);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(7);
         doc.setTextColor(...INK);
-        doc.text(`LÉGENDE (suite) — ${plan.titre}`, LEG.x, 20);
-        break;
+        doc.text(`LÉGENDE (suite) — ${plan.titre}`, FRAME.x + 6, 20);
       }
-      const lineY = top + y + 2;
-      legendRow(doc, row, colX[col], lineY, colW, icons.get(`${row.kind}|${row.color}`) ?? null, fontPt);
-      if (row.note) {
-        // la note de l'élément, juste sous sa ligne
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(Math.max(4.4, fontPt - 0.8));
-        doc.setTextColor(60, 60, 60);
-        doc.text(fitText(doc, row.note, colW - 5), colX[col] + 4.6, lineY + noteStep);
+      // sur les pages suivantes, la légende part du bord gauche du cadre
+      const pageTop = p === 0 ? top : LEG_TOP_NEXT;
+      const pageX = (col: number) => (p === 0 ? colX[col] : FRAME.x + 6 + col * (colW + gap));
+      for (const { row, col, y, box } of pagePlaced) {
+        const lineY = pageTop + y + 2;
+        legendRow(doc, row, pageX(col), lineY, icons.get(`${row.kind}|${row.color}`) ?? null, fontPt, box);
+        // la note de l'élément, juste sous le libellé
+        box.note.forEach((t, i) => {
+          doc.setFont('helvetica', 'italic');
+          doc.setFontSize(Math.max(4.4, fontPt - 0.8));
+          doc.setTextColor(60, 60, 60);
+          doc.text(t, pageX(col) + 4.6, lineY + (box.lines - 1) * fontPt * 0.4 + noteStep * (i + 1));
+        });
       }
     }
 

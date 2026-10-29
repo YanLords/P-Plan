@@ -8,6 +8,7 @@
   import WhatsNew from './lib/WhatsNew.svelte';
   import { store } from './lib/store.svelte';
   import { LS_KEY } from './lib/store.svelte';
+  import { KIND_META, canSpread, type Kind } from './lib/elements';
   import { settings } from './lib/settings.svelte';
   import { savePlan, openPlan, saveFile, slug, takePendingPlans } from './lib/files';
   import { buildPdf } from './lib/pdf';
@@ -188,6 +189,14 @@
       notify(store.publicIcon ? 'Zone public : icône' : 'Zone public : zone');
       return;
     }
+    // Tab alterne le mode normal / tracé réparti tous les X m (types répartissables)
+    if (e.key === 'Tab' && canSpread(store.tool)) {
+      e.preventDefault();
+      store.setSpreadTrace(!store.spreadTrace);
+      const label = KIND_META[store.tool as Kind].label;
+      notify(store.spreadTrace ? `${label} : tracé — répartition tous les X m` : `${label} : normal`);
+      return;
+    }
 
     // copier / coller / dupliquer : ⌘C, ⌘V, ⌘D (Ctrl sur Windows)
     if (mod && (key === 'c' || key === 'v' || key === 'd')) {
@@ -210,6 +219,9 @@
       const redone = key === 'y' || e.shiftKey;
       if (redone) {
         if (store.redo()) notify('Rétabli');
+      } else if (store.drawsShape && store.draft.length) {
+        // pendant un tracé, ⌘Z retire le dernier sommet (pas l'état du plan)
+        store.removeLastDraftPoint();
       } else if (store.undo()) {
         notify('Annulé');
       }
@@ -231,6 +243,8 @@
       else store.select(null);
     } else if (e.key === 'Enter' && store.draft.length) {
       store.finishDraft();
+    } else if ((e.key === 'Delete' || e.key === 'Backspace') && store.draft.length) {
+      store.removeLastDraftPoint();
     } else if ((e.key === 'Delete' || e.key === 'Backspace') && store.selection) {
       store.remove(store.selection);
     }
@@ -281,7 +295,7 @@
       </div>
     </header>
 
-    <div class="stage">
+    <div class="stage" class:pin-disc={settings.value.pinDisc} style="--pin-scale: {settings.value.pinScale}">
       <div class="map" bind:this={mapEl}></div>
       <MapView el={mapEl} bind:this={mapView} />
       {#if settings.value.showLegend}

@@ -1,7 +1,7 @@
 import type { Kind, PElement, Plan, Tool } from './elements';
-import { KIND_META, cloneElement, isKindTool, isShape, isZone, sanitizePlan } from './elements';
+import { KIND_META, canSpread, cloneElement, isKindTool, isShape, isZone, sanitizePlan } from './elements';
 import { History } from './history';
-import { snapDistance, ringCentroid } from './geo';
+import { repeatPoints, ringCentroid, snapDistance } from './geo';
 import { settings } from './settings.svelte';
 
 export const LS_KEY = 'plan-de-feu:autosave';
@@ -9,7 +9,7 @@ export const LS_KEY = 'plan-de-feu:autosave';
 export function emptyPlan(): Plan {
   return {
     version: 1,
-    titre: 'Plan de disposition',
+    titre: 'Schéma de mise en oeuvre',
     site: '',
     date: new Date().toISOString().slice(0, 10),
     center: [46.6, 2.4],
@@ -109,6 +109,20 @@ class PlanStore {
   /** Zone public placée en icône (un clic) au lieu d'une zone tracée (Tab pour alterner). */
   publicIcon = $state(false);
 
+  /** Artifice placé en tracé (réparti tous les X m le long) au lieu d'un point (Tab pour alterner). */
+  spreadTrace = $state(false);
+  /** pas (m) de la répartition en mode tracé artifice */
+  spreadSpacing = $state(50);
+  /** distance de sécurité (m) portée par les artifices répartis (défaut 20 si vide/0) */
+  spreadDs = $state(20);
+  /** couleur des artifices répartis ('' = défaut du type) */
+  spreadColor = $state('');
+
+  setSpreadTrace(on: boolean) {
+    this.spreadTrace = on;
+    this.draft = [];
+  }
+
   setPublicIcon(on: boolean) {
     this.publicIcon = on;
     this.draft = [];
@@ -116,7 +130,11 @@ class PlanStore {
 
   /** Vrai quand le clic ajoute un sommet (tracé) plutôt qu'un point. */
   get drawsShape(): boolean {
-    return isKindTool(this.tool) && isShape(this.tool) && !(this.tool === 'zone_public' && this.publicIcon);
+    return (
+      isKindTool(this.tool) &&
+      (isShape(this.tool) || (canSpread(this.tool) && this.spreadTrace)) &&
+      !(this.tool === 'zone_public' && this.publicIcon)
+    );
   }
 
   /** Inverse le sens d'un tracé (voie de sortie) : la pointe de flèche suit. */
@@ -204,12 +222,47 @@ class PlanStore {
     this.draft = [...this.draft, at];
   }
 
+  /** Déplace un sommet du tracé en cours, sans terminer le tracé. */
+  updateDraftVertex(index: number, at: [number, number]) {
+    if (!this.draft[index]) return;
+    this.draft = this.draft.map((p, i) => (i === index ? at : p));
+  }
+
+  /** Retire le dernier sommet du tracé en cours (⟲ / ⌫) : on peut éditer sans terminer. */
+  removeLastDraftPoint(): boolean {
+    if (!this.draft.length) return false;
+    this.draft = this.draft.slice(0, -1);
+    return true;
+  }
+
   /** Termine le tracé en cours : crée le barriérage (≥2 pts) ou la zone (≥3 pts). */
   finishDraft(): boolean {
     const ring = this.draft;
     const kind: Kind | null =
-      isKindTool(this.tool) && isShape(this.tool) ? this.tool : null;
+      isKindTool(this.tool) && (isShape(this.tool) || (canSpread(this.tool) && this.spreadTrace))
+        ? this.tool
+        : null;
     if (!kind) return false;
+
+    // mode tracé (Tab) : on répartit le long du tracé, la ligne elle-même n'est pas gardée
+    if (canSpread(kind) && this.spreadTrace) {
+      const min = 1;
+      if (ring.length < min) return false;
+      const points = ring.map((p) => [...p] as [number, number]);
+      const placed = repeatPoints(points, this.spreadSpacing);
+      // ds 0/vide → défaut 20 m posé par addPoint ; couleur vide → défaut du type
+      const extra: Partial<PElement> = {
+        ...(kind === 'artifice' ? { ds: this.spreadDs > 0 ? this.spreadDs : undefined } : {}),
+        color: this.spreadColor || undefined,
+      };
+      for (const at of placed) this.addPoint(kind, at, extra);
+      // tracé plus court que le pas : un seul élément au premier sommet
+      if (!placed.length) this.addPoint(kind, points[0], extra);
+      this.draft = [];
+      this.tool = 'select';
+      return true;
+    }
+
     const min = isZone(kind) ? 3 : 2;
     if (ring.length < min) return false;
     const points = ring.map((p) => [...p] as [number, number]);

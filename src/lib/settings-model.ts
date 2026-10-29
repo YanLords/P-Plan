@@ -85,6 +85,10 @@ export interface ToolSettings {
   showRings: boolean;
   showLegend: boolean;
   showLabels: boolean;
+  /** fond rond blanc derrière les icônes de la carte */
+  pinDisc: boolean;
+  /** taille des icônes de la carte (1 = 100 %) */
+  pinScale: number;
   autosave: boolean;
   shortcuts: Record<ToolKey, string>;
   company: Company;
@@ -93,6 +97,10 @@ export interface ToolSettings {
 export const UI_SCALE_MIN = 0.8;
 export const UI_SCALE_MAX = 1.3;
 export const UI_SCALE_STEP = 0.05;
+
+export const PIN_SCALE_MIN = 0.6;
+export const PIN_SCALE_MAX = 2;
+export const PIN_SCALE_STEP = 0.1;
 
 export const SHORTCUT_ORDER: ToolKey[] = [
   'select',
@@ -104,10 +112,15 @@ export const SHORTCUT_ORDER: ToolKey[] = [
   'sortie',
   'accueil_secours',
   'point_eau',
+  'bouche_incendie',
   'bouee',
   'extincteur',
   'son',
   'surveillance',
+  'personnel_jco',
+  'camion_pompier',
+  'engin',
+  'electricite',
   'regie',
   'bateau',
   'marqueur',
@@ -123,10 +136,15 @@ export const SHORTCUT_LABELS: Record<ToolKey, string> = {
   sortie: 'Accès secours',
   accueil_secours: 'Accueil secours',
   point_eau: "Point d'eau",
+  bouche_incendie: 'Bouche incendie',
   bouee: 'Bouée',
   extincteur: 'Extincteur',
   son: 'Son',
   surveillance: 'Surveillance',
+  personnel_jco: 'Personnel JCO',
+  camion_pompier: 'Camion pompier',
+  engin: 'Engin',
+  electricite: 'Électricité',
   regie: 'Régie de tir',
   bateau: 'Bateau',
   marqueur: 'Marqueur',
@@ -142,10 +160,15 @@ export const DEFAULT_SHORTCUTS: Record<ToolKey, string> = {
   sortie: 'o',
   accueil_secours: 'q',
   point_eau: 'e',
+  bouche_incendie: '',
   bouee: 'u',
   extincteur: 'w',
   son: 's',
   surveillance: 'g',
+  personnel_jco: '',
+  camion_pompier: '',
+  engin: '',
+  electricite: '',
   regie: 'c',
   bateau: 'f',
   marqueur: 'm',
@@ -158,10 +181,19 @@ export const DEFAULT_SETTINGS: ToolSettings = {
   showRings: true,
   showLegend: true,
   showLabels: true,
+  pinDisc: false,
+  pinScale: 1,
   autosave: true,
   shortcuts: { ...DEFAULT_SHORTCUTS },
   company: { ...EMPTY_COMPANY },
 };
+
+export function clampPinScale(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) return 1;
+  const stepped = Math.round(n / PIN_SCALE_STEP) * PIN_SCALE_STEP;
+  return Math.min(PIN_SCALE_MAX, Math.max(PIN_SCALE_MIN, Number(stepped.toFixed(2))));
+}
 
 export function clampScale(value: unknown): number {
   const n = typeof value === 'number' ? value : Number(value);
@@ -219,6 +251,8 @@ export function sanitizeSettings(raw: unknown): ToolSettings {
     showRings: bool(src.showRings, DEFAULT_SETTINGS.showRings),
     showLegend: bool(src.showLegend, DEFAULT_SETTINGS.showLegend),
     showLabels: bool(src.showLabels, DEFAULT_SETTINGS.showLabels),
+    pinDisc: bool(src.pinDisc, DEFAULT_SETTINGS.pinDisc),
+    pinScale: clampPinScale(src.pinScale ?? DEFAULT_SETTINGS.pinScale),
     autosave: bool(src.autosave, DEFAULT_SETTINGS.autosave),
     shortcuts,
     company: sanitizeCompany(src.company),

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { store } from './store.svelte';
-  import { KIND_META, kindIcon, colorOf } from './elements';
+  import { KIND_META, colorOf } from './elements';
+  import { kindIcon } from './icons';
 
   let open = $state(true);
 </script>
@@ -17,7 +18,7 @@
           <li class:sel={store.selection === e.id}>
             <button onclick={() => store.select(e.id)}>
               <span class="num">{i + 1}</span>
-              <span class="ico" style="--c:{colorOf(e)}" aria-hidden="true">{@html kindIcon(e.kind)}</span>
+              <span class="ico" style="--c:{colorOf(e)}" aria-hidden="true">{@html kindIcon(e.kind, colorOf(e))}</span>
               <span class="txt">{e.label}</span>
               {#if e.kind === 'artifice' && e.ds != null}
                 <span class="ds">{e.ds} m</span>
@@ -115,7 +116,8 @@
     line-height: 0;
   }
 
-  .ico :global(svg) {
+  .ico :global(svg),
+  .ico :global(img) {
     width: 13px;
     height: 13px;
   }

@@ -5,6 +5,37 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+## [0.4.1] — 2026-10-29
+
+### Ajouté
+
+- **Nouveaux éléments** : Bouche incendie, Camion pompier, Engin, Personnel JCO et Électricité. Ils n'ont pas de touche par défaut ; leur raccourci se configure dans les réglages.
+- **Sous-menus du rail** : « Moyens » (camion pompier, engin) et « Personnel » (agent de surveillance, personnel JCO). Un appui prolongé sur le bouton ouvre le choix des outils du groupe.
+- **Couleur personnalisable** pour l'agent de surveillance, le personnel JCO, le son, la régie de tir et la barrière.
+- **Tracé réparti** : avec `Tab`, l'artifice, l'extincteur, le son, la barge et la zone perso se posent le long d'un tracé, réparti tous les X m (pas, DS et couleur réglables pour les artifices). `Tab` revient au mode normal.
+- **Réglage « Taille des icônes »** (60 % à 200 %) dans les réglages.
+- **Réglage « Fond rond des icônes »** dans les réglages, section Interface.
+
+### Modifié
+
+- Les icônes de la carte n'ont plus de fond rond par défaut ; le réglage « Fond rond » les remet dans un cercle blanc.
+- **Nouvelles icônes** pour Point d'eau (goutte), Bouche incendie, Extincteur, Accueil secours, Agent de surveillance, Son, Camion pompier, Engin et Électricité. Les icônes tracées sont pleines, pour rester lisibles sur la vue satellite.
+- **Régie de tir** : icône de PC portable, écran évidé.
+- **Artifice** : icône carré ; l'ancienne icône est archivée dans `src/lib/icons/archive/`.
+- **Fond de bateau** renommé **Barge**.
+- **Titre par défaut** d'un nouveau plan : « Schéma de mise en oeuvre ».
+- **Carte** : zoom jusqu'au niveau 22 ; au-delà de 19, les fonds de carte sont agrandis.
+- **Étiquettes** : au survol en 20 px, DS des artifices en 19,33 px, avec la valeur de la distance en noir.
+- **Légende PDF** : police de 7,2 à 8,2 pt selon la place disponible, sur 2 à 4 colonnes ; libellés et détails sur plusieurs lignes ; sur une deuxième page « Légende (suite) » si elle ne tient pas ; contour noir autour des icônes claires ; en-tête remonté.
+- **Cartouche PDF** : 100 mm de large au lieu de 122 mm ; la légende gagne la place.
+- **PDF** : le picto de barrière n'est pas imprimé sur la carte (le tracé reste).
+
+### Corrigé
+
+- Le bouton « Fond rond » était tronqué dans l'en-tête de la légende.
+- Le fond de carte disparaissait au-delà du zoom 19.
+- La légende PDF ne recouvre plus le pied de page « Coordonnées WGS84 · page ».
+
 ## [0.4.0] — 2026-10-27
 
 ### Ajouté

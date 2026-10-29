@@ -14,6 +14,10 @@ export type Kind =
   | 'bateau'
   | 'surveillance'
   | 'regie'
+  | 'camion_pompier'
+  | 'engin'
+  | 'personnel_jco'
+  | 'electricite'
   | 'marqueur';
 
 export interface PElement {
@@ -62,9 +66,13 @@ export const KIND_META: Record<
   point_eau: { label: "Point d'eau", color: '#0A84FF', shape: 'point' },
   bouee: { label: 'Bouée', color: '#F76707', shape: 'point' },
   extincteur: { label: 'Extincteur', color: '#FF3B30', shape: 'point' },
-  son: { label: 'Son', color: '#0B7285', shape: 'point' },
+  son: { label: 'Son', color: '#000000', shape: 'point' },
   bateau: { label: 'Fond de bateau', color: '#4A6C8C', shape: 'zone' },
-  surveillance: { label: 'Agent de surveillance', color: '#B5179E', shape: 'point' },
+  surveillance: { label: 'Agent de surveillance', color: '#4eac4c', shape: 'point' },
+  personnel_jco: { label: 'Personnel JCO', color: '#ea1f4c', shape: 'point' },
+  camion_pompier: { label: 'Camion pompier', color: '#D9480F', shape: 'point' },
+  engin: { label: 'Engin', color: '#F59F00', shape: 'point' },
+  electricite: { label: 'Électricité', color: '#E67700', shape: 'point' },
   regie: { label: 'Régie de tir', color: '#495057', shape: 'point' },
   marqueur: { label: 'Marqueur', color: '#1A1A1A', shape: 'point' },
 };
@@ -82,12 +90,30 @@ export const TOOL_ORDER: Kind[] = [
   'extincteur',
   'son',
   'surveillance',
+  'personnel_jco',
+  'camion_pompier',
+  'engin',
+  'electricite',
   'regie',
   'bateau',
   'marqueur',
 ];
 
-const PATHS: Record<Kind, string> = {
+/** Outils regroupés sous un même bouton du rail : appui prolongé pour choisir. */
+export interface ToolGroup {
+  id: string;
+  label: string;
+  members: Kind[];
+}
+
+export const TOOL_GROUPS: ToolGroup[] = [
+  { id: 'moyens', label: 'Moyens', members: ['camion_pompier', 'engin'] },
+  { id: 'personnel', label: 'Personnel', members: ['surveillance', 'personnel_jco'] },
+];
+
+export const groupOf = (kind: Kind): ToolGroup | undefined => TOOL_GROUPS.find((g) => g.members.includes(kind));
+
+export const PATHS: Partial<Record<Kind, string>> = {
   artifice:
     '<path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.2 5.2l2.1 2.1M16.7 16.7l2.1 2.1M18.8 5.2l-2.1 2.1M7.3 16.7l-2.1 2.1"/><circle cx="12" cy="12" r="3.1"/>',
   barrierage: '<path d="M3 8h18M3 16h18M7 8v8M12 8v8M17 8v8"/>',
@@ -96,45 +122,17 @@ const PATHS: Record<Kind, string> = {
     '<circle cx="9" cy="8" r="2.6"/><path d="M3.6 19.5a5.4 5.4 0 0 1 10.8 0"/><circle cx="17" cy="9.2" r="2"/><path d="M16.2 19.5a4.6 4.6 0 0 1 4.4-4.4"/>',
   zone_perso:
     '<path d="M12 3.2 19.6 7.6v8.8L12 20.8 4.4 16.4V7.6z"/><path d="M12 9.2v5.6" stroke-dasharray="2 2"/>',
-  accueil_secours: '<circle cx="12" cy="12" r="8.6"/><path d="M12 7.8v8.4M7.8 12h8.4"/>',
-  point_eau: '<path d="M12 2.8 6.4 8.4a8 8 0 1 0 11.2 0z"/>',
   // bouée de sauvetage (life-buoy, Feather)
   bouee:
     '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.6"/><path d="m5.6 5.6 3.8 3.8M14.6 9.4l3.8-3.8M14.6 14.6l3.8 3.8M9.4 14.6l-3.8 3.8"/>',
-  extincteur:
-    '<path d="M8.2 8h5.8a2 2 0 0 1 2 2v9.2a1.8 1.8 0 0 1-1.8 1.8H8a1.8 1.8 0 0 1-1.8-1.8V10a2 2 0 0 1 2-2z"/><path d="M9 8V5.2h6"/><path d="M6.2 8V6.2h6.6"/><path d="M16 11.4h2.6"/>',
-  son: '<path d="M11 4.7 6.2 8.6H2.6v6.8h3.6L11 19.3z"/><path d="M15.4 8.6a4.8 4.8 0 0 1 0 6.8"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/>',
   bateau:
     '<path d="M3.4 14.2h17.2l-2.1 4.1a1.7 1.7 0 0 1-1.5.9H7a1.7 1.7 0 0 1-1.5-.9z"/><path d="M12 14.2V4.6"/><path d="m12 5.6 4.6 2.9H12z"/><path d="M12 8.5H7.8L12 5.9z"/>',
-  surveillance:
-    '<path d="M2.2 12s3.7-7 9.8-7 9.8 7 9.8 7-3.7 7-9.8 7-9.8-7-9.8-7z"/><circle cx="12" cy="12" r="2.9"/>',
   // régie de tir : écran d'ordinateur sur son pied
   regie:
     '<rect x="2.5" y="3.5" width="19" height="13" rx="2"/><path d="M8.5 21h7M12 16.5V21"/>',
   marqueur:
     '<path d="M20 10.2c0 6-8 11.8-8 11.8S4 16.2 4 10.2a8 8 0 0 1 16 0z"/><circle cx="12" cy="10.2" r="2.6"/>',
 };
-
-/** Tracés seuls (sans `<svg>`), réutilisables dans une autre composition SVG. */
-export function kindGlyph(kind: Kind, color = 'currentColor', strokeWidth = 1.7): string {
-  return (
-    `<g fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">` +
-    `${PATHS[kind]}</g>`
-  );
-}
-
-/** SVG inline (style Feather : tracé 1.7, 24×24). `color` = currentColor par défaut. */
-export function kindIconSvg(kind: Kind, size = 20, color = 'currentColor'): string {
-  return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">` +
-    `${kindGlyph(kind, color)}</svg>`
-  );
-}
-
-/** Icône d'élément (hérite de la couleur du texte). */
-export function kindIcon(kind: Kind): string {
-  return kindIconSvg(kind);
-}
 
 export const isZone = (kind: Kind) => KIND_META[kind].shape === 'zone';
 

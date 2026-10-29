@@ -88,6 +88,10 @@ textarea {
   border: none;
 }
 
+.pf-img {
+  display: block;
+}
+
 .pf-pin {
   width: 26px;
   height: 26px;

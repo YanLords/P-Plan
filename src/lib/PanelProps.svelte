@@ -1,6 +1,7 @@
 <script lang="ts">
   import { store } from './store.svelte';
   import { KIND_META, colorOf, isZone } from './elements';
+  import { isTintable } from './icons';
   import { formatCoord, formatMeters, ringArea, ringLength } from './geo';
 
   const el = $derived(store.selected);
@@ -67,7 +68,7 @@
       </button>
     {/if}
 
-    {#if el.kind === 'artifice' || isZone(el.kind) || el.kind === 'marqueur'}
+    {#if el.kind === 'artifice' || isZone(el.kind) || el.kind === 'marqueur' || isTintable(el.kind)}
       <label>
         <span>Couleur</span>
         <input

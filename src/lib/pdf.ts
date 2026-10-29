@@ -3,7 +3,8 @@ import { toCanvas } from 'html-to-image';
 import QRCode from 'qrcode';
 import { companyIsEmpty, vcardOf, type Company } from './settings-model';
 import type { Plan, Kind } from './elements';
-import { KIND_META, colorOf, kindIconSvg } from './elements';
+import { KIND_META, colorOf } from './elements';
+import { iconSource } from './icons';
 import { formatCoord, formatMeters, metersPerPixel, scaleBarLength } from './geo';
 import { cityOf, legendRowsFor, type LegRow } from './legend';
 
@@ -66,7 +67,7 @@ async function iconPng(kind: Kind, color: string): Promise<string | null> {
   if (cached) return cached;
   try {
     const img = new Image();
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(kindIconSvg(kind, 64, color))}`;
+    img.src = iconSource(kind, color);
     await img.decode();
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = 64;

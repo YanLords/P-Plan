@@ -1,7 +1,8 @@
 <script lang="ts">
   import { store } from './store.svelte';
   import { settings } from './settings.svelte';
-  import { KIND_META, RULER, TOOL_ORDER, kindIcon, type Kind } from './elements';
+  import { KIND_META, RULER, TOOL_ORDER, groupOf, type Kind, type ToolGroup } from './elements';
+  import { kindIcon } from './icons';
 
   let {
     onNew,
@@ -19,10 +20,20 @@
     busy?: boolean;
   } = $props();
 
-  const TOOL_ICON: Record<Kind, string> = Object.fromEntries(TOOL_ORDER.map((k) => [k, kindIcon(k)])) as Record<
-    Kind,
-    string
-  >;
+  const TOOL_ICON: Record<Kind, string> = Object.fromEntries(
+    TOOL_ORDER.map((k) => [k, kindIcon(k, KIND_META[k].color)])
+  ) as Record<Kind, string>;
+
+  // une entrée du rail : un outil, ou un sous-menu qui regroupe plusieurs outils (à la place du premier)
+  const railItems = TOOL_ORDER.flatMap((k): ({ kind: Kind } | { group: ToolGroup })[] => {
+    const g = groupOf(k);
+    if (!g) return [{ kind: k }];
+    return g.members[0] === k ? [{ group: g }] : [];
+  });
+
+  // membre affiché de chaque sous-menu (le dernier choisi, sinon le premier)
+  let groupChoice = $state<Record<string, Kind>>({});
+  let openGroup = $state<string | null>(null);
 
   // Zone public : un appui prolongé ouvre le choix zone / icône (comme les outils cachés de Photoshop)
   const HOLD_MS = 450;
@@ -42,6 +53,30 @@
       if (r) menuPos = { x: r.right + 6, y: r.top };
       menuOpen = true;
     }, HOLD_MS);
+  }
+
+  function groupHoldStart(g: ToolGroup, ev: PointerEvent) {
+    held = false;
+    const r = (ev.currentTarget as HTMLElement).closest('.pub-wrap')?.getBoundingClientRect();
+    holdTimer = setTimeout(() => {
+      held = true;
+      if (r) menuPos = { x: r.right + 6, y: r.top };
+      openGroup = g.id;
+    }, HOLD_MS);
+  }
+
+  function clickGroup(g: ToolGroup) {
+    if (held) {
+      held = false;
+      return;
+    }
+    store.setTool(groupChoice[g.id] ?? g.members[0]);
+  }
+
+  function pickGroup(g: ToolGroup, k: Kind) {
+    groupChoice = { ...groupChoice, [g.id]: k };
+    store.setTool(k);
+    openGroup = null;
   }
 
   function holdEnd() {
@@ -66,7 +101,10 @@
 
 <svelte:window
   onpointerdown={(e) => {
-    if (menuOpen && !(e.target as HTMLElement).closest('.pub-wrap')) menuOpen = false;
+    if ((menuOpen || openGroup) && !(e.target as HTMLElement).closest('.pub-wrap')) {
+      menuOpen = false;
+      openGroup = null;
+    }
   }}
 />
 
@@ -101,7 +139,33 @@
       <span class="lbl">Règle</span>
     </button>
 
-    {#each TOOL_ORDER as k}
+    {#each railItems as item}
+      {#if 'group' in item}
+        {@const g = item.group}
+        {@const k = groupChoice[g.id] ?? g.members[0]}
+        <div class="pub-wrap">
+          <button
+            class="item"
+            class:active={store.tool === k || g.members.includes(store.tool as Kind)}
+            onclick={() => clickGroup(g)}
+            onpointerdown={(e) => groupHoldStart(g, e)}
+            onpointerup={holdEnd}
+            onpointerleave={holdEnd}
+            title={`${g.label} — appui prolongé pour choisir`}
+          >
+            <span class="ico" style="--c:{KIND_META[k].color}">{@html TOOL_ICON[k]}</span>
+            <span class="lbl">{KIND_META[k].label}</span>
+          </button>
+          {#if openGroup === g.id}
+            <div class="pub-menu" role="menu" style="left: {menuPos.x}px; top: {menuPos.y}px">
+              {#each g.members as m}
+                <button role="menuitem" class:on={k === m} onclick={() => pickGroup(g, m)}>{KIND_META[m].label}</button>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      {:else}
+      {@const k = item.kind}
       {#if k === 'zone_public'}
         <div class="pub-wrap" bind:this={wrap}>
           <button
@@ -133,6 +197,7 @@
           <span class="ico" style="--c:{KIND_META[k].color}">{@html TOOL_ICON[k]}</span>
           <span class="lbl">{KIND_META[k].label}</span>
         </button>
+      {/if}
       {/if}
     {/each}
   </nav>

@@ -1,4 +1,5 @@
-import { KIND_META, kindGlyph, type Kind } from './elements';
+import { KIND_META, type Kind } from './elements';
+import { kindGlyph } from './icons';
 
 /**
  * Curseur d'outil : pastille blanche + icône de l'outil, rasterisée en PNG.

@@ -20,6 +20,10 @@ export const MERGED: Kind[] = [
   'son',
   'accueil_secours',
   'surveillance',
+  'personnel_jco',
+  'camion_pompier',
+  'engin',
+  'electricite',
   'regie',
 ];
 

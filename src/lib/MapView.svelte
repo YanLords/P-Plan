@@ -4,7 +4,8 @@
   import 'leaflet/dist/leaflet.css';
   import { store } from './store.svelte';
   import { settings } from './settings.svelte';
-  import { KIND_META, RULER, colorOf, isFond, isKindTool, isShape, isZone, kindIcon, TOOL_ORDER, type PElement } from './elements';
+  import { KIND_META, RULER, colorOf, isFond, isKindTool, isShape, isZone, TOOL_ORDER, type PElement } from './elements';
+  import { kindIcon } from './icons';
   import { destinationPoint, formatMeters, haversine, ringLength, snapDistance } from './geo';
   import { kindCursor } from './cursors';
   import { searchPlaces, type Place } from './geocode';
@@ -48,7 +49,7 @@
   function pin(e: PElement, selected: boolean) {
     return L.divIcon({
       className: 'pf-pin-wrap',
-      html: `<div class="pf-pin${selected ? ' sel' : ''}" style="--c:${colorOf(e)}">${kindIcon(e.kind)}</div>`,
+      html: `<div class="pf-pin${selected ? ' sel' : ''}" style="--c:${colorOf(e)}">${kindIcon(e.kind, colorOf(e))}</div>`,
       iconSize: [26, 26],
       iconAnchor: [13, 13],
     });

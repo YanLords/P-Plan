@@ -5,6 +5,16 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+### Ajouté
+
+- **Nouveaux éléments** : Camion pompier, Engin, Personnel JCO et Électricité. Ils n'ont pas de touche par défaut ; leur raccourci se configure dans les réglages.
+- **Sous-menus du rail** : « Moyens » (camion pompier, engin) et « Personnel » (agent de surveillance, personnel JCO). Un appui prolongé sur le bouton ouvre le choix des outils du groupe.
+- **Couleur personnalisable** pour l'agent de surveillance, le personnel JCO et le son.
+
+### Modifié
+
+- **Nouvelles icônes** pour Point d'eau, Extincteur, Accueil secours, Agent de surveillance et Son.
+
 ## [0.4.0] — 2026-10-27
 
 ### Ajouté

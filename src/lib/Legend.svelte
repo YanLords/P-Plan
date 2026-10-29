@@ -73,6 +73,8 @@
   }
 
   header .disc {
+    width: auto;
+    height: auto;
     margin-left: auto;
     font-size: 11px;
     padding: 2px 7px;

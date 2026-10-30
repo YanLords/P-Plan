@@ -269,43 +269,40 @@ function drawCartouche(
   const S = showCompany ? 19 : 0; // hauteur du bloc entreprise (logo + contact + QR)
   // le cartouche se comprime quand la carte prend de la place (pas de troncature du plan)
   const DESIGN_H = 44 + S; // dernière ligne du dessin
-  const k = Math.min(1, (h - 3.5) / DESIGN_H);
+  const k = Math.min(1, (h - 1.5) / DESIGN_H);
   const fs = Math.max(0.7, k);
   // `sat` = coordonnées du bloc entreprise (avant le décalage S), `at` = contenu courant
-  const sat = (v: number) => y0 + 2 + v * k;
+  const sat = (v: number) => y0 + v * k;
   const at = (v: number) => y0 + 2 + (v + S) * k;
   const unit = (mm: number) => mm * k;
 
-  doc.setDrawColor(...INK);
-  doc.setLineWidth(0.3);
-  doc.rect(x, y0, w, h);
-
   if (showCompany) {
     // 0. identité : logo à gauche, coordonnées au centre, QR de contact à droite
-    const box = unit(11);
+    const box = unit(28); // logo doublé (cap vertical au filet via maxH)
+    const maxH = unit(17.6); // ne dépasse pas le filet du bloc entreprise
     if (company.logo && logo) {
-      const ratio = Math.min(box / logo.w, box / logo.h);
-      doc.addImage(company.logo, 'PNG', x + 3, sat(1.4), logo.w * ratio, logo.h * ratio, undefined, 'FAST');
+      const ratio = Math.min(box / logo.w, box / logo.h, maxH / logo.h);
+      doc.addImage(company.logo, 'PNG', x + 1.5, sat(0.6), logo.w * ratio, logo.h * ratio, undefined, 'FAST');
     }
     const qrSize = qr ? unit(17) : 0;
-    const textX = x + 3 + box + 3;
-    const textW = x + w - 3 - (qr ? qrSize + 3 : 0) - textX;
+    const textX = x + 1.5 + box + 2.5;
+    const textW = x + w - 1.5 - (qr ? qrSize + 1.5 : 0) - textX;
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.8 * fs);
+    doc.setFontSize(9.2 * fs);
     doc.setTextColor(...INK);
-    doc.text(fitText(doc, company.name || '—', textW), textX, sat(5.2));
+    doc.text(fitText(doc, company.name || '—', textW), textX, sat(4.4));
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7 * fs);
+    doc.setFontSize(8.2 * fs);
     doc.setTextColor(...INK);
     [company.address, company.phone, company.email, company.website]
       .filter(Boolean)
       .slice(0, 4)
-      .forEach((line, i) => doc.text(fitText(doc, line, textW), textX, sat(9.2 + i * 2.9)));
+      .forEach((line, i) => doc.text(fitText(doc, line, textW), textX, sat(8.6 + i * 3.1)));
 
     if (qr) {
-      doc.addImage(qr, 'PNG', x + w - 3 - qrSize, sat(1.4), qrSize, qrSize, undefined, 'FAST');
+      doc.addImage(qr, 'PNG', x + w - 1.5 - qrSize, sat(0.6), qrSize, qrSize, undefined, 'FAST');
     }
     boxRule(doc, sat(19.4));
   }
@@ -454,7 +451,7 @@ export async function buildPdf(
   drawNorth(doc, imgX + imgW - 8, MAP.y + 8);
 
   // ---- Bande basse : cartouche à gauche, légende à droite
-  const bandY = MAP.y + imgH + 5;
+  const bandY = MAP.y + imgH + 1.5; // serré sous la carte : le bloc entreprise remonte
   const bandH = LEG.bottom - bandY;
   const qr = company.qr && showCompany ? await qrPng(vcardOf(company)) : null;
   const logo = company.logo ? await imageSize(company.logo) : null;

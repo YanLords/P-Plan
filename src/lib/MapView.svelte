@@ -276,7 +276,7 @@
 
           // la bulle du rayon reste affichée sur le plan (pas seulement à la souris)
           if (settings.value.showLabels) {
-            ray.bindTooltip(`<b style="color:#000">DS ${ds} m</b>`, {
+            ray.bindTooltip(`<b>${ds} m</b>`, {
               permanent: true,
               direction: 'top',
               offset: [0, -3],
@@ -289,7 +289,7 @@
           if (sel) {
             const g = L.marker(at, { icon: radiusIcon(), draggable: true, zIndexOffset: 700 }).addTo(overlay!);
             grip = g;
-            g.bindTooltip(`DS ${ds} m`, { direction: 'top', offset: [0, -12], sticky: false });
+            g.bindTooltip(`${ds} m`, { direction: 'top', offset: [0, -12], sticky: false });
 
             // mesure en direct pendant le geste : cercle, rayon et étiquette suivent la souris
             g.on('dragstart', () => g.openTooltip());
@@ -299,7 +299,7 @@
               const meters = snapDistance(haversine([center.lat, center.lng], [ll.lat, ll.lng]));
               circle.setRadius(meters);
               ray?.setLatLngs([center, ll]);
-              g.setTooltipContent(`DS ${meters} m`);
+              g.setTooltipContent(`${meters} m`);
             });
             g.on('dragend', () => {
               const ll = g.getLatLng();

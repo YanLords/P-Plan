@@ -1,6 +1,6 @@
 [package]
 name = "planfeu"
-version = "0.4.1"
+version = "0.4.2"
 description = "Planete Plan - plans de disposition de feux d'artifice"
 authors = ["Artifeu"]
 edition = "2021"

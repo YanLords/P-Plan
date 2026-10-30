@@ -11,6 +11,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 - **Plan PDF** : typo de l'entreprise agrandie (nom 9,2 pt, coordonnées 8,2 pt) ; cadre noir du cartouche retiré et bloc entreprise remonté pour exploiter la hauteur.
 - **Logo entreprise** : taille doublée (boîte 28 mm, plafonnée à 17,6 mm de haut pour ne pas déborder du filet) et pleine largeur exploitée.
+- **Cartouche** : date du tir sur la même ligne que la commune, même taille, en normal (moins gras).
 - **Plan** : l'étiquette du rayon de sécurité affiche la valeur seule (« 40 m », sans « DS »), en typographie agrandie (24 px).
 
 ## [0.4.1] — 2026-10-29

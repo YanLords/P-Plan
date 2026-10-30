@@ -322,7 +322,28 @@ function drawCartouche(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13 * fs);
   doc.setTextColor(...INK);
-  doc.text(fitText(doc, city || 'Lieu non renseigné', w - 8), cx, at(16.4), { align: 'center' });
+  const cityText = fitText(doc, city || 'Lieu non renseigné', w - 8);
+
+  // date sur la même ligne que la ville : même typo, en normal (moins gras)
+  const dateText = new Date(`${plan.date}T12:00:00`).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+  const gap = 2.5; // mm entre la ville et la date
+  const wCity = doc.getTextWidth(cityText);
+  doc.setFont('helvetica', 'bold');
+  const wDate = doc.getTextWidth(dateText); // largeur mesurée en gras pour un centrage juste
+  doc.setFont('helvetica', 'normal'); // moins gras
+  const total = wCity + gap + wDate;
+  const startX = cx - total / 2;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...INK);
+  doc.text(cityText, startX, at(16.4), { align: 'left' });
+  doc.setFont('helvetica', 'normal'); // moins gras
+  doc.setTextColor(...MUTED);
+  doc.text(dateText, startX + wCity + gap, at(16.4), { align: 'left' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.8 * fs);
@@ -331,14 +352,6 @@ function drawCartouche(
     wrapText(doc, address, w - 8, 2).forEach((line, i) => doc.text(line, cx, at(20.4 + i * 3), { align: 'center' }));
   }
 
-  doc.setFontSize(7.2 * fs);
-  doc.setTextColor(...INK);
-  doc.text(
-    new Date(`${plan.date}T12:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }),
-    cx,
-    at(26.8),
-    { align: 'center' }
-  );
   boxRule(doc, at(28.6));
 
   // échelle mesurable + date d'étude, sur une bande compacte

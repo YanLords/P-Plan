@@ -85,6 +85,7 @@ export interface ToolSettings {
   showRings: boolean;
   showLegend: boolean;
   showLabels: boolean;
+  showStreetNames: boolean;
   /** fond rond blanc derrière les icônes de la carte */
   pinDisc: boolean;
   /** taille des icônes de la carte (1 = 100 %) */
@@ -181,6 +182,7 @@ export const DEFAULT_SETTINGS: ToolSettings = {
   showRings: true,
   showLegend: true,
   showLabels: true,
+  showStreetNames: true,
   pinDisc: false,
   pinScale: 1,
   autosave: true,
@@ -251,6 +253,7 @@ export function sanitizeSettings(raw: unknown): ToolSettings {
     showRings: bool(src.showRings, DEFAULT_SETTINGS.showRings),
     showLegend: bool(src.showLegend, DEFAULT_SETTINGS.showLegend),
     showLabels: bool(src.showLabels, DEFAULT_SETTINGS.showLabels),
+    showStreetNames: bool(src.showStreetNames, DEFAULT_SETTINGS.showStreetNames),
     pinDisc: bool(src.pinDisc, DEFAULT_SETTINGS.pinDisc),
     pinScale: clampPinScale(src.pinScale ?? DEFAULT_SETTINGS.pinScale),
     autosave: bool(src.autosave, DEFAULT_SETTINGS.autosave),

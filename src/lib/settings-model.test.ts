@@ -86,10 +86,12 @@ test('sanitizeSettings : données corrompues -> défauts, champs valides conserv
   assert.equal(partial.uiScale, 1.3);
   assert.equal(partial.defaultBase, 'sat');
   assert.equal(partial.showLegend, false);
+  assert.equal(partial.showStreetNames, true, 'noms de rues activés par défaut');
   assert.equal(partial.autosave, true, 'valeur non booléenne -> défaut');
 
   const badBase = sanitizeSettings({ defaultBase: 'ignoré' });
   assert.equal(badBase.defaultBase, 'osm');
+  assert.equal(sanitizeSettings({ showStreetNames: false }).showStreetNames, false);
 
   const custom = sanitizeSettings({ shortcuts: { select: '', artifice: 'k', marqueur: '!!' } });
   assert.equal(custom.shortcuts.select, '', 'touche volontairement vidée conservée');

@@ -169,6 +169,20 @@
         </div>
 
         <div class="row">
+          <span>Noms de rues</span>
+          <button
+            class="switch"
+            aria-label="Afficher les noms de rues"
+            role="switch"
+            aria-checked={settings.value.showStreetNames}
+            class:on={settings.value.showStreetNames}
+            onclick={() => settings.set('showStreetNames', !settings.value.showStreetNames)}
+          >
+            <span></span>
+          </button>
+        </div>
+
+        <div class="row">
           <span>Étiquettes au survol</span>
           <button
             class="switch"

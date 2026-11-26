@@ -34,11 +34,12 @@
   let measureMoved = false;
   let baseKey: 'osm' | 'sat' | null = null;
   let baseLayer: L.TileLayer | null = null;
+  let streetNamesLayer: L.TileLayer | null = null;
 
   const TILES = {
     osm: {
-      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      attr: '&copy; OpenStreetMap',
+      url: 'https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png',
+      attr: '&copy; OpenStreetMap contributors',
       max: 19,
     },
     sat: {
@@ -62,6 +63,26 @@
     });
     baseLayer.addTo(map);
     baseLayer.bringToBack();
+  }
+
+  function ensureStreetNames() {
+    if (!map) return;
+    // Le fond Plan OSM affiche déjà ses propres noms. La couche transparente
+    // n'est utile que par-dessus le satellite.
+    if (!settings.value.showStreetNames || store.plan.base !== 'sat') {
+      streetNamesLayer?.remove();
+      streetNamesLayer = null;
+      return;
+    }
+    if (streetNamesLayer) return;
+    streetNamesLayer = L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',
+      {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        maxNativeZoom: 19,
+        maxZoom: MAX_ZOOM,
+      }
+    ).addTo(map);
   }
 
   function pin(e: PElement, selected: boolean) {
@@ -441,6 +462,12 @@
     if (map) ensureBase(store.plan.base);
   });
 
+  $effect(() => {
+    settings.value.showStreetNames;
+    store.plan.base;
+    if (map) ensureStreetNames();
+  });
+
   /** Règle : trait + bulle de distance, hors plan (jamais enregistré). */
   function clearMeasure() {
     measureLine?.remove();
@@ -518,6 +545,7 @@
     overlay = L.layerGroup().addTo(m);
     L.control.scale({ metric: true, imperial: false, position: 'bottomright' }).addTo(m);
     ensureBase(store.plan.base);
+    ensureStreetNames();
     draw(); // le premier passage de l'$effect a lieu avant la création de la carte
 
     m.on('moveend', () => {
@@ -585,6 +613,7 @@
       draftGroup = null;
       baseKey = null;
       baseLayer = null;
+      streetNamesLayer = null;
     };
   });
 

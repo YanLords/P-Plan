@@ -5,6 +5,16 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ## [Non publié]
 
+## [0.4.3] — 2026-11-26
+
+### Ajouté
+
+- **Carte** : réglage « Noms de rues » dans les paramètres, activé par défaut ; les noms sont affichés sur le fond satellite.
+
+### Corrigé
+
+- **Fond de carte** : le plan reste visible sans clé API grâce à un fournisseur de tuiles OpenStreetMap compatible avec l’application desktop.
+
 ## [0.4.2] — 2026-10-30
 
 ### Modifié

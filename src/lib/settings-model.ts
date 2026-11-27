@@ -142,7 +142,7 @@ export const SHORTCUT_LABELS: Record<ToolKey, string> = {
   extincteur: 'Extincteur',
   son: 'Son',
   surveillance: 'Surveillance',
-  personnel_jco: 'Personnel JCO',
+  personnel_jco: 'Personnel artificier',
   camion_pompier: 'Camion pompier',
   engin: 'Engin',
   electricite: 'Électricité',

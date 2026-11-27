@@ -72,7 +72,7 @@ export const KIND_META: Record<
   son: { label: 'Son', color: '#000000', shape: 'point' },
   bateau: { label: 'Barge', color: '#4A6C8C', shape: 'zone' },
   surveillance: { label: 'Agent de surveillance', color: '#4eac4c', shape: 'point' },
-  personnel_jco: { label: 'Personnel JCO', color: '#ea1f4c', shape: 'point' },
+  personnel_jco: { label: 'Personnel artificier', color: '#ea1f4c', shape: 'point' },
   camion_pompier: { label: 'Camion pompier', color: '#D9480F', shape: 'point' },
   engin: { label: 'Engin', color: '#F59F00', shape: 'point' },
   electricite: { label: 'Électricité', color: '#E67700', shape: 'point' },

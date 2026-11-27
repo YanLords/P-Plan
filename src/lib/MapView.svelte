@@ -76,9 +76,9 @@
     }
     if (streetNamesLayer) return;
     streetNamesLayer = L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',
+      'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
       {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        attribution: 'Roads &amp; labels &copy; Esri',
         maxNativeZoom: 19,
         maxZoom: MAX_ZOOM,
       }

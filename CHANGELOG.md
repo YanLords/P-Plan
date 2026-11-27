@@ -13,7 +13,7 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), ver
 
 ### Corrigé
 
-- **Fond de carte** : le plan reste visible sans clé API grâce à un fournisseur de tuiles OpenStreetMap compatible avec l’application desktop.
+- **Noms de rues en mode satellite** : la couche CARTO qui renvoyait « API KEY REQUIRED » est remplacée par la couche Esri des routes et libellés, visible au-dessus de l’imagerie satellite.
 
 ## [0.4.2] — 2026-10-30
 
